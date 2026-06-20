@@ -7,11 +7,13 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=MedievalSharp&display=swap');
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        :root {
+            --ink: #1a3a3a;
+            --ash: #8a9a9a;
+            --ember: #ff7a1e;
         }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
             background-color: #000;
@@ -21,28 +23,829 @@
             justify-content: center;
             min-height: 100vh;
             overflow: hidden;
+            -webkit-tap-highlight-color: transparent;
         }
+        body.playing { cursor: crosshair; }
 
         h1 {
             font-family: 'MedievalSharp', cursive;
             color: #1a3a3a;
-            font-size: clamp(3rem, 8vw, 6rem);
+            font-size: clamp(2.6rem, 7vw, 5.5rem);
             letter-spacing: 0.15em;
-            margin-bottom: 2rem;
+            margin-bottom: 1rem;
         }
 
-        img {
-            max-width: 90vw;
-            max-height: 70vh;
-            object-fit: contain;
+        /* Tabs --------------------------------------------------------- */
+        .tabs {
+            display: flex;
+            gap: 0.35rem;
+            margin-bottom: 1.4rem;
+            flex-wrap: wrap;
+            justify-content: center;
         }
+        .tab {
+            font-family: 'MedievalSharp', cursive;
+            font-size: 0.92rem;
+            letter-spacing: 0.05em;
+            color: var(--ash);
+            background: none;
+            border: 1px solid rgba(138,154,154,.25);
+            border-radius: 6px;
+            padding: 0.34rem 0.85rem;
+            cursor: pointer;
+            opacity: 0.7;
+            transition: all 0.15s ease;
+        }
+        .tab:hover { opacity: 1; }
+        .tab.active {
+            color: #0b0f0f;
+            background: var(--ember);
+            border-color: var(--ember);
+            opacity: 1;
+            box-shadow: 0 0 14px rgba(255,120,30,.4);
+        }
+
+        /* Pumpkin + candle glow ---------------------------------------- */
+        .pumpkin-wrap { position: relative; display: none; line-height: 0; }
+        body[data-view="home"] .pumpkin-wrap,
+        body[data-view="arcade"] .pumpkin-wrap { display: inline-block; }
+
+        img { max-width: 90vw; max-height: 62vh; object-fit: contain; }
+
+        .glow {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            mix-blend-mode: screen;
+            transition: transform 0.16s ease-out;
+            background:
+                radial-gradient(ellipse 11% 9%  at 37% 46%, rgba(255,165,60,.95), rgba(255,110,20,.30) 55%, transparent 78%),
+                radial-gradient(ellipse 11% 9%  at 61% 47%, rgba(255,165,60,.95), rgba(255,110,20,.30) 55%, transparent 78%),
+                radial-gradient(ellipse 5% 6%   at 49% 61%, rgba(255,175,70,.85), transparent 72%),
+                radial-gradient(ellipse 24% 9%  at 47% 73%, rgba(255,150,45,.92), rgba(255,100,15,.22) 55%, transparent 82%),
+                radial-gradient(ellipse 46% 42% at 48% 58%, rgba(255,120,30,.16), transparent 72%);
+            animation: flicker 5s linear infinite;
+        }
+        @keyframes flicker {
+            0%, 100% { opacity: .90; filter: brightness(1); }
+            8%  { opacity: .78; }
+            12% { opacity: 1.0; filter: brightness(1.15); }
+            20% { opacity: .72; }
+            27% { opacity: .95; }
+            36% { opacity: .83; }
+            44% { opacity: 1.0; filter: brightness(1.22); }
+            52% { opacity: .70; }
+            61% { opacity: .92; }
+            72% { opacity: .80; }
+            80% { opacity: 1.0; filter: brightness(1.12); }
+            88% { opacity: .76; }
+        }
+
+        a.email {
+            display: none;
+            color: #1a3a3a;
+            font-family: 'MedievalSharp', cursive;
+            font-size: 0.85rem;
+            margin-top: 1.6rem;
+            text-decoration: none;
+        }
+        body[data-view="home"] a.email { display: block; }
+
+        /* Arcade: HUD + creatures + panels ----------------------------- */
+        .hud {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            display: none;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.4rem;
+            font-family: 'MedievalSharp', cursive;
+            color: var(--ash);
+            font-size: 1.1rem;
+            letter-spacing: 0.08em;
+            z-index: 8;
+            pointer-events: none;
+            text-shadow: 0 0 8px rgba(0,0,0,.9);
+        }
+        body[data-view="arcade"].playing .hud { display: flex; }
+        .hud .val { color: var(--ember); }
+
+        #game { position: fixed; inset: 0; pointer-events: none; z-index: 5; }
+        .creature { position: absolute; top: 0; pointer-events: auto; cursor: pointer; will-change: transform; }
+        .creature.spider { width: 52px; }
+        .creature.bat    { width: 66px; }
+        .creature .cre-svg { width: 100%; height: auto; display: block; }
+        .creature:hover .cre-svg { filter: drop-shadow(0 0 7px var(--ember)); }
+        .cre-svg .bd, .cre-svg .ear, .cre-svg .wing path { fill: var(--ash); }
+        .cre-svg .legs { stroke: var(--ash); stroke-width: 2.4; }
+        .cre-svg .eye { fill: var(--ember); }
+        .creature.spider::before {
+            content: '';
+            position: absolute;
+            left: 50%; bottom: 100%;
+            width: 2px; height: 100vh;
+            transform: translateX(-50%);
+            background: linear-gradient(to top, rgba(150,165,165,.55), rgba(150,165,165,0));
+        }
+        .wing { transform-box: fill-box; }
+        .wl { transform-origin: right center; animation: flapL .2s infinite alternate ease-in-out; }
+        .wr { transform-origin: left center;  animation: flapR .2s infinite alternate ease-in-out; }
+        @keyframes flapL { from { transform: rotate(8deg); }  to { transform: rotate(-20deg); } }
+        @keyframes flapR { from { transform: rotate(-8deg); } to { transform: rotate(20deg); } }
+        @keyframes drop { 0% { transform: translateY(-12vh); } 100% { transform: translateY(112vh); } }
+        @keyframes flyR {
+            0% { transform: translate(-14vw, 0); } 25% { transform: translate(18vw, -26px); }
+            50% { transform: translate(50vw, 14px); } 75% { transform: translate(82vw, -20px); }
+            100% { transform: translate(116vw, 0); }
+        }
+        @keyframes flyL {
+            0% { transform: translate(116vw, 0); } 25% { transform: translate(82vw, -26px); }
+            50% { transform: translate(50vw, 14px); } 75% { transform: translate(18vw, -20px); }
+            100% { transform: translate(-14vw, 0); }
+        }
+
+        .pop {
+            position: fixed;
+            transform: translate(-50%, -50%);
+            font-family: 'MedievalSharp', cursive;
+            color: var(--ember);
+            font-size: 1.3rem;
+            pointer-events: none;
+            z-index: 9;
+            text-shadow: 0 0 10px rgba(255,120,30,.9);
+            animation: popRise .55s ease-out forwards;
+        }
+        @keyframes popRise {
+            0% { opacity: 1; transform: translate(-50%, -50%) scale(.7); }
+            100% { opacity: 0; transform: translate(-50%, -160%) scale(1.1); }
+        }
+
+        .panel {
+            position: fixed;
+            left: 50%; bottom: 8%;
+            transform: translateX(-50%);
+            z-index: 20;
+            text-align: center;
+            font-family: 'MedievalSharp', cursive;
+            color: var(--ash);
+            background: rgba(8, 14, 14, .82);
+            border: 1px solid rgba(138,154,154,.28);
+            border-radius: 10px;
+            padding: 1.1rem 1.6rem;
+            backdrop-filter: blur(2px);
+            box-shadow: 0 10px 40px rgba(0,0,0,.7);
+            max-width: 90vw;
+            display: none;
+        }
+        body[data-view="arcade"] #start-panel.on,
+        body[data-view="arcade"] #over-panel.on { display: block; }
+        .panel .title {
+            font-size: 1.5rem;
+            color: var(--ember);
+            letter-spacing: 0.1em;
+            margin-bottom: .35rem;
+            text-shadow: 0 0 14px rgba(255,120,30,.5);
+        }
+        .panel .sub { font-size: .9rem; opacity: .8; margin-bottom: .9rem; }
+        .panel .sub .val { color: var(--ember); }
+
+        .btn {
+            font-family: 'MedievalSharp', cursive;
+            font-size: 1.05rem;
+            letter-spacing: 0.06em;
+            color: #0b0f0f;
+            background: var(--ember);
+            border: none;
+            border-radius: 7px;
+            padding: .55rem 1.4rem;
+            cursor: pointer;
+            transition: transform .12s ease, box-shadow .2s ease;
+            box-shadow: 0 0 18px rgba(255,120,30,.45);
+        }
+        .btn:hover { transform: translateY(-1px) scale(1.03); box-shadow: 0 0 26px rgba(255,120,30,.7); }
+
+        .sound-toggle {
+            position: fixed;
+            bottom: 12px; right: 14px;
+            z-index: 20;
+            display: none;
+            font-family: 'MedievalSharp', cursive;
+            font-size: .8rem;
+            color: var(--ash);
+            opacity: .5;
+            background: none; border: none; cursor: pointer;
+        }
+        body[data-view="arcade"] .sound-toggle { display: block; }
+        .sound-toggle:hover { opacity: .9; }
+
+        /* Futoshiki ---------------------------------------------------- */
+        #futoshiki-view { display: none; flex-direction: column; align-items: center; gap: 1rem; }
+        body[data-view="futoshiki"] #futoshiki-view { display: flex; }
+        body[data-view="futoshiki"] { justify-content: flex-start; overflow-y: auto; padding: 1.4rem 0 2rem; }
+
+        .fk-controls { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; justify-content: center; }
+        .fk-controls select, .fk-controls button {
+            font-family: 'MedievalSharp', cursive;
+            font-size: .88rem;
+            color: var(--ash);
+            background: #0e1414;
+            border: 1px solid rgba(138,154,154,.3);
+            border-radius: 6px;
+            padding: .36rem .7rem;
+            cursor: pointer;
+        }
+        .fk-controls button:hover, .fk-controls select:hover { border-color: var(--ember); color: var(--ember); }
+
+        .fk-grid {
+            display: grid;
+            --c: clamp(40px, 12vw, 56px);
+            --g: clamp(18px, 5.5vw, 26px);
+            grid-template-columns: var(--c) var(--g) var(--c) var(--g) var(--c) var(--g) var(--c) var(--g) var(--c);
+            grid-template-rows:    var(--c) var(--g) var(--c) var(--g) var(--c) var(--g) var(--c) var(--g) var(--c);
+            gap: 2px;
+        }
+        .fcell {
+            display: flex; align-items: center; justify-content: center;
+            background: #0d1413;
+            border: 1px solid rgba(138,154,154,.35);
+            border-radius: 5px;
+            font-family: 'MedievalSharp', cursive;
+            font-size: calc(var(--c) * 0.55);
+            color: var(--ember);
+            cursor: pointer; user-select: none;
+            transition: border-color .25s, box-shadow .15s;
+        }
+        .fcell.given { color: var(--ash); cursor: default; background: #11201f; }
+        .fcell.sel { outline: 2px solid var(--ember); outline-offset: -2px; box-shadow: inset 0 0 12px rgba(255,120,30,.45); }
+        .fcell.bad { color: #ff5b5b; border-color: #ff5b5b; }
+        .sign {
+            display: flex; align-items: center; justify-content: center;
+            color: var(--ash); opacity: .85;
+            font-family: Georgia, 'Times New Roman', serif;
+            font-size: calc(var(--g) * 0.95);
+            font-weight: bold;
+        }
+        .fk-grid.solved .fcell { border-color: var(--ember); box-shadow: 0 0 10px rgba(255,120,30,.25); }
+
+        .fk-pad { display: flex; gap: .4rem; flex-wrap: wrap; justify-content: center; }
+        .fk-pad button {
+            width: clamp(40px, 11vw, 50px); height: clamp(40px, 11vw, 50px);
+            font-family: 'MedievalSharp', cursive;
+            font-size: 1.2rem;
+            color: var(--ash);
+            background: #0e1414;
+            border: 1px solid rgba(138,154,154,.3);
+            border-radius: 7px;
+            cursor: pointer;
+        }
+        .fk-pad button:hover { border-color: var(--ember); color: var(--ember); }
+
+        .fk-status {
+            font-family: 'MedievalSharp', cursive;
+            color: var(--ash);
+            font-size: .85rem;
+            max-width: 440px;
+            text-align: center;
+            opacity: .85;
+            padding: 0 1rem;
+        }
+        .fk-status.win { color: var(--ember); opacity: 1; font-size: 1.1rem; text-shadow: 0 0 12px rgba(255,120,30,.6); }
+
+        @media (prefers-reduced-motion: reduce) { .glow { animation: none; opacity: .9; } }
     </style>
 </head>
-<body>
+<body data-view="home">
     <h1>
         <span style="display:inline-block; transform: rotate(-2deg) translateY(2px); -webkit-text-stroke: 1.2px #1a3a3a;">F</span><span style="display:inline-block; transform: rotate(1.5deg) translateY(-1px); -webkit-text-stroke: 1.8px #1a3a3a;">a</span><span style="display:inline-block; transform: rotate(-1deg) translateY(3px); -webkit-text-stroke: 1.5px #1a3a3a;">t</span><span style="display:inline-block; width: 0.3em;"></span><span style="display:inline-block; transform: rotate(2deg) translateY(-2px); -webkit-text-stroke: 1.6px #1a3a3a;">O</span><span style="display:inline-block; transform: rotate(-2.5deg) translateY(1px); -webkit-text-stroke: 1.3px #1a3a3a;">t</span><span style="display:inline-block; transform: rotate(1deg) translateY(4px); -webkit-text-stroke: 2px #1a3a3a;">t</span>
     </h1>
-    <img src="fatott_pumpkin.jpg" alt="">
-    <a href="mailto:fatott@fatott.com" style="color: #1a3a3a; font-family: 'MedievalSharp', cursive; font-size: 0.85rem; margin-top: 2rem; text-decoration: none;">fatott@fatott.com</a>
+
+    <nav class="tabs">
+        <button class="tab active" data-view="home">Home</button>
+        <button class="tab" data-view="arcade">Feed Fat Ott</button>
+        <button class="tab" data-view="futoshiki">Futoshiki</button>
+    </nav>
+
+    <div class="pumpkin-wrap">
+        <img src="fatott_pumpkin.jpg" alt="A menacing ink-drawn jack-o'-lantern">
+        <div class="glow" id="glow"></div>
+    </div>
+
+    <a class="email" href="mailto:fatott@fatott.com">fatott@fatott.com</a>
+
+    <!-- Feed Fat Ott (arcade) -->
+    <div class="hud">
+        <span>caught <span class="val" id="score">0</span></span>
+        <span><span class="val" id="time">15</span>s</span>
+    </div>
+    <div id="game"></div>
+    <div class="panel" id="start-panel">
+        <div class="title">Feed Fat Ott</div>
+        <div class="sub">Bats and spiders crawl from the dark.<br>Click them before they escape. 15 seconds.</div>
+        <button class="btn" id="start-btn">Begin the feast</button>
+    </div>
+    <div class="panel" id="over-panel">
+        <div class="title">Time's up</div>
+        <div class="sub">Fat Ott devoured <span class="val" id="final">0</span> &middot; best <span class="val" id="best">0</span></div>
+        <button class="btn" id="again-btn">Play again</button>
+    </div>
+    <button class="sound-toggle" id="sound-toggle" aria-label="Toggle sound">&#9834; sound on</button>
+
+    <!-- Futoshiki -->
+    <section id="futoshiki-view">
+        <div class="fk-controls">
+            <select id="fk-diff" aria-label="Difficulty">
+                <option value="easy">Easy</option>
+                <option value="hard">Hard</option>
+            </select>
+            <button id="fk-new">New puzzle</button>
+            <button id="fk-restart">Restart</button>
+            <button id="fk-hint">Hint</button>
+        </div>
+        <div id="fk-grid" class="fk-grid"></div>
+        <div class="fk-pad" id="fk-pad"></div>
+        <div class="fk-status" id="fk-status">Fill every row &amp; column with 1&ndash;5, no repeats. A sign&rsquo;s open side faces the larger number.</div>
+    </section>
+
+    <script>
+    (function () {
+        'use strict';
+
+        function shuffle(a) {
+            for (var i = a.length - 1; i > 0; i--) {
+                var j = Math.floor(Math.random() * (i + 1));
+                var t = a[i]; a[i] = a[j]; a[j] = t;
+            }
+            return a;
+        }
+
+        /* =========================================================
+           Tab navigation
+        ========================================================= */
+        var tabs = Array.prototype.slice.call(document.querySelectorAll('.tab'));
+
+        function showView(name) {
+            if (document.body.dataset.view === 'arcade' && name !== 'arcade') stopArcade();
+            document.body.dataset.view = name;
+            tabs.forEach(function (t) { t.classList.toggle('active', t.dataset.view === name); });
+            if (name === 'arcade') resetArcadePanels();
+            if (name === 'futoshiki' && !FK.puzzle) FK.newPuzzle();
+        }
+        tabs.forEach(function (t) { t.addEventListener('click', function () { showView(t.dataset.view); }); });
+
+        /* =========================================================
+           Sound (short reactive blips only, after a user gesture)
+        ========================================================= */
+        var soundOn = true, audioCtx = null;
+        function ensureAudio() {
+            if (!audioCtx) {
+                var AC = window.AudioContext || window.webkitAudioContext;
+                if (AC) audioCtx = new AC();
+            }
+        }
+        function blip(freq, dur, type) {
+            if (!soundOn || !audioCtx) return;
+            var t = audioCtx.currentTime;
+            var osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+            osc.type = type || 'triangle';
+            osc.frequency.setValueAtTime(freq, t);
+            osc.frequency.exponentialRampToValueAtTime(freq * 0.5, t + dur);
+            gain.gain.setValueAtTime(0.12, t);
+            gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+            osc.connect(gain).connect(audioCtx.destination);
+            osc.start(t); osc.stop(t + dur);
+        }
+        var soundBtn = document.getElementById('sound-toggle');
+        soundBtn.addEventListener('click', function () {
+            soundOn = !soundOn;
+            soundBtn.innerHTML = soundOn ? '&#9834; sound on' : '&#9834; sound off';
+        });
+
+        var glow = document.getElementById('glow');
+        function flareGlow() {
+            glow.style.transform = 'scale(1.05)';
+            clearTimeout(flareGlow._t);
+            flareGlow._t = setTimeout(function () { glow.style.transform = ''; }, 160);
+        }
+        function popAt(x, y, text) {
+            var p = document.createElement('div');
+            p.className = 'pop';
+            p.textContent = text || '+1';
+            p.style.left = x + 'px';
+            p.style.top = y + 'px';
+            p.addEventListener('animationend', function () { p.remove(); });
+            document.body.appendChild(p);
+        }
+
+        /* =========================================================
+           Feed Fat Ott (arcade)
+        ========================================================= */
+        var ROUND_SECONDS = 15;
+        var BEST_KEY = 'fatott_best';
+        var game = document.getElementById('game');
+        var scoreEl = document.getElementById('score');
+        var timeEl = document.getElementById('time');
+        var finalEl = document.getElementById('final');
+        var bestEl = document.getElementById('best');
+        var startPanel = document.getElementById('start-panel');
+        var overPanel = document.getElementById('over-panel');
+
+        var playing = false, score = 0, timeLeft = ROUND_SECONDS;
+        var spawnTimer = null, countTimer = null;
+
+        var BAT_SVG =
+            '<svg class="cre-svg" viewBox="-52 -30 104 60" xmlns="http://www.w3.org/2000/svg">' +
+            '<g class="wing wl"><path d="M-4 0 C -18 -18 -38 -20 -50 -8 C -40 -6 -38 3 -44 11 C -28 3 -16 9 -4 5 Z"/></g>' +
+            '<g class="wing wr"><path d="M4 0 C 18 -18 38 -20 50 -8 C 40 -6 38 3 44 11 C 28 3 16 9 4 5 Z"/></g>' +
+            '<path class="bd" d="M-4 -3 C -4 -11 4 -11 4 -3 L 4 7 C 4 13 -4 13 -4 7 Z"/>' +
+            '<path class="ear" d="M-5 -9 L -3 -17 L 0 -9 Z"/><path class="ear" d="M5 -9 L 3 -17 L 0 -9 Z"/>' +
+            '<circle class="eye" cx="-2.3" cy="-4" r="1.3"/><circle class="eye" cx="2.3" cy="-4" r="1.3"/></svg>';
+        var SPIDER_SVG =
+            '<svg class="cre-svg" viewBox="-34 -16 68 64" xmlns="http://www.w3.org/2000/svg">' +
+            '<g class="legs" fill="none" stroke-linecap="round">' +
+            '<path d="M-6 8 C -18 2 -26 8 -31 2"/><path d="M-6 12 C -20 12 -28 18 -33 14"/>' +
+            '<path d="M-6 16 C -18 22 -26 24 -30 31"/><path d="M-5 20 C -14 28 -17 32 -21 39"/>' +
+            '<path d="M6 8 C 18 2 26 8 31 2"/><path d="M6 12 C 20 12 28 18 33 14"/>' +
+            '<path d="M6 16 C 18 22 26 24 30 31"/><path d="M5 20 C 14 28 17 32 21 39"/></g>' +
+            '<ellipse class="bd" cx="0" cy="18" rx="9" ry="11"/><circle class="bd" cx="0" cy="5" r="6"/>' +
+            '<circle class="eye" cx="-2.2" cy="4" r="1.3"/><circle class="eye" cx="2.2" cy="4" r="1.3"/></svg>';
+
+        function spawnCreature() {
+            var isSpider = Math.random() < 0.58;
+            var el = document.createElement('div');
+            el.className = 'creature ' + (isSpider ? 'spider' : 'bat');
+            el.innerHTML = isSpider ? SPIDER_SVG : BAT_SVG;
+            if (isSpider) {
+                el.style.left = (6 + Math.random() * 84) + 'vw';
+                el.style.animation = 'drop ' + (3.4 + Math.random() * 1.8).toFixed(2) + 's linear forwards';
+            } else {
+                el.style.left = '0';
+                el.style.top = (8 + Math.random() * 68) + 'vh';
+                var dir = Math.random() < 0.5 ? 'flyR' : 'flyL';
+                el.style.animation = dir + ' ' + (4.2 + Math.random() * 2).toFixed(2) + 's linear forwards';
+            }
+            el.addEventListener('pointerdown', onCatch);
+            el.addEventListener('animationend', function () { el.remove(); });
+            game.appendChild(el);
+        }
+        function onCatch(e) {
+            if (!playing) return;
+            var el = e.currentTarget;
+            if (el.dataset.done) return;
+            el.dataset.done = '1';
+            e.preventDefault(); e.stopPropagation();
+            var r = el.getBoundingClientRect();
+            el.remove();
+            score += 1; scoreEl.textContent = score;
+            popAt(r.left + r.width / 2, r.top + r.height / 2, '+1');
+            flareGlow(); blip(660, 0.12, 'triangle');
+        }
+        function scheduleSpawn() {
+            spawnCreature();
+            var elapsed = ROUND_SECONDS - timeLeft;
+            var interval = Math.max(320, 760 - elapsed * 26);
+            spawnTimer = setTimeout(scheduleSpawn, interval);
+        }
+        function tick() {
+            timeLeft -= 1; timeEl.textContent = timeLeft;
+            if (timeLeft <= 0) endGame();
+        }
+        function clearCreatures() {
+            var n = game.querySelectorAll('.creature');
+            for (var i = 0; i < n.length; i++) n[i].remove();
+        }
+        function startGame() {
+            ensureAudio();
+            if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+            playing = true; score = 0; timeLeft = ROUND_SECONDS;
+            scoreEl.textContent = '0'; timeEl.textContent = ROUND_SECONDS;
+            startPanel.classList.remove('on'); overPanel.classList.remove('on');
+            document.body.classList.add('playing');
+            clearCreatures(); scheduleSpawn();
+            countTimer = setInterval(tick, 1000);
+        }
+        function endGame() {
+            playing = false;
+            clearTimeout(spawnTimer); clearInterval(countTimer);
+            clearCreatures(); document.body.classList.remove('playing');
+            var best = parseInt(localStorage.getItem(BEST_KEY) || '0', 10);
+            if (score > best) { best = score; localStorage.setItem(BEST_KEY, String(best)); }
+            finalEl.textContent = score; bestEl.textContent = best;
+            overPanel.classList.add('on'); blip(180, 0.4, 'sawtooth');
+        }
+        function stopArcade() {
+            playing = false;
+            clearTimeout(spawnTimer); clearInterval(countTimer);
+            clearCreatures(); document.body.classList.remove('playing');
+            startPanel.classList.remove('on'); overPanel.classList.remove('on');
+        }
+        function resetArcadePanels() {
+            if (playing) return;
+            overPanel.classList.remove('on');
+            startPanel.classList.add('on');
+            var best = parseInt(localStorage.getItem(BEST_KEY) || '0', 10);
+            var sub = startPanel.querySelector('.sub');
+            sub.innerHTML = 'Bats and spiders crawl from the dark.<br>Click them before they escape. 15 seconds.' +
+                (best > 0 ? '<br>best so far: <span class="val">' + best + '</span>' : '');
+        }
+        document.getElementById('start-btn').addEventListener('click', startGame);
+        document.getElementById('again-btn').addEventListener('click', startGame);
+
+        /* =========================================================
+           Futoshiki (5x5)
+        ========================================================= */
+        var FK = (function () {
+            var N = 5;
+            var grid = document.getElementById('fk-grid');
+            var pad = document.getElementById('fk-pad');
+            var statusEl = document.getElementById('fk-status');
+            var diffSel = document.getElementById('fk-diff');
+
+            var solution = null;     // full solved grid
+            var givenGrid = null;    // starting clues (0 = blank)
+            var userGrid = null;     // current entries
+            var hSign = null;        // [r][c] rel for cell (r,c) vs (r,c+1): 'gt'|'lt'|null
+            var vSign = null;        // [r][c] rel for cell (r,c) vs (r+1,c): 'gt'|'lt'|null
+            var cellEls = null;      // [r][c] -> DOM
+            var selected = null;     // {r,c}
+            var solved = false;
+
+            function blank2d(rows, cols, fill) {
+                var a = [];
+                for (var r = 0; r < rows; r++) { a.push([]); for (var c = 0; c < cols; c++) a[r].push(fill); }
+                return a;
+            }
+
+            function consistent(g, r, c, v) {
+                var i;
+                for (i = 0; i < N; i++) { if (g[r][i] === v || g[i][c] === v) return false; }
+                if (c > 0 && hSign[r][c - 1] && g[r][c - 1] !== 0) {
+                    if (hSign[r][c - 1] === 'gt' ? !(g[r][c - 1] > v) : !(g[r][c - 1] < v)) return false;
+                }
+                if (c < N - 1 && hSign[r][c] && g[r][c + 1] !== 0) {
+                    if (hSign[r][c] === 'gt' ? !(v > g[r][c + 1]) : !(v < g[r][c + 1])) return false;
+                }
+                if (r > 0 && vSign[r - 1][c] && g[r - 1][c] !== 0) {
+                    if (vSign[r - 1][c] === 'gt' ? !(g[r - 1][c] > v) : !(g[r - 1][c] < v)) return false;
+                }
+                if (r < N - 1 && vSign[r][c] && g[r + 1][c] !== 0) {
+                    if (vSign[r][c] === 'gt' ? !(v > g[r + 1][c]) : !(v < g[r + 1][c])) return false;
+                }
+                return true;
+            }
+
+            // Count solutions (capped at 2) given a prefilled grid + current signs.
+            function countSolutions(prefill) {
+                var g = prefill.map(function (row) { return row.slice(); });
+                var empties = [];
+                for (var r = 0; r < N; r++) for (var c = 0; c < N; c++) if (g[r][c] === 0) empties.push([r, c]);
+                var count = 0;
+                (function bt(i) {
+                    if (count >= 2) return;
+                    if (i === empties.length) { count++; return; }
+                    var r = empties[i][0], c = empties[i][1];
+                    for (var v = 1; v <= N; v++) {
+                        if (consistent(g, r, c, v)) { g[r][c] = v; bt(i + 1); g[r][c] = 0; if (count >= 2) return; }
+                    }
+                })(0);
+                return count;
+            }
+
+            function generateSolution() {
+                var g = blank2d(N, N, 0);
+                (function fill(idx) {
+                    if (idx === N * N) return true;
+                    var r = Math.floor(idx / N), c = idx % N;
+                    var vals = shuffle([1, 2, 3, 4, 5]);
+                    for (var k = 0; k < vals.length; k++) {
+                        var v = vals[k];
+                        var ok = true;
+                        for (var i = 0; i < N; i++) { if (g[r][i] === v || g[i][c] === v) { ok = false; break; } }
+                        if (ok) { g[r][c] = v; if (fill(idx + 1)) return true; g[r][c] = 0; }
+                    }
+                    return false;
+                })(0);
+                return g;
+            }
+
+            function newPuzzle() {
+                var diff = diffSel.value;
+                solution = generateSolution();
+                hSign = blank2d(N, N - 1, null);
+                vSign = blank2d(N - 1, N, null);
+
+                // Candidate inequality positions, then keep a random K of them.
+                var pairs = [];
+                var r, c;
+                for (r = 0; r < N; r++) for (c = 0; c < N - 1; c++) pairs.push({ t: 'H', r: r, c: c });
+                for (r = 0; r < N - 1; r++) for (c = 0; c < N; c++) pairs.push({ t: 'V', r: r, c: c });
+                shuffle(pairs);
+                var K = diff === 'hard' ? 7 : 11;
+                for (var p = 0; p < K; p++) {
+                    var pr = pairs[p];
+                    if (pr.t === 'H') hSign[pr.r][pr.c] = solution[pr.r][pr.c] > solution[pr.r][pr.c + 1] ? 'gt' : 'lt';
+                    else vSign[pr.r][pr.c] = solution[pr.r][pr.c] > solution[pr.r + 1][pr.c] ? 'gt' : 'lt';
+                }
+
+                // Start fully revealed, then strip clues while the puzzle stays unique.
+                givenGrid = solution.map(function (row) { return row.slice(); });
+                var keys = [];
+                for (r = 0; r < N; r++) for (c = 0; c < N; c++) keys.push([r, c]);
+                shuffle(keys);
+                var givenCount = N * N;
+                for (var i = 0; i < keys.length; i++) {
+                    var kr = keys[i][0], kc = keys[i][1], saved = givenGrid[kr][kc];
+                    givenGrid[kr][kc] = 0;
+                    if (countSolutions(givenGrid) === 1) {
+                        givenCount--;
+                        if (diff === 'easy' && givenCount <= 8) break;
+                    } else {
+                        givenGrid[kr][kc] = saved;
+                    }
+                }
+
+                userGrid = givenGrid.map(function (row) { return row.slice(); });
+                selected = null; solved = false;
+                render();
+                setStatus('Fill every row & column with 1–5, no repeats. A sign’s open side faces the larger number.', false);
+            }
+
+            function signChar(t, rel) {
+                if (t === 'H') return rel === 'gt' ? '>' : '<';
+                // Vertical: a rotated chevron points toward the smaller cell.
+                var span = document.createElement('span');
+                span.textContent = '>';
+                span.style.display = 'inline-block';
+                span.style.transform = 'rotate(' + (rel === 'gt' ? 90 : -90) + 'deg)';
+                return span;
+            }
+
+            function render() {
+                grid.innerHTML = '';
+                grid.classList.remove('solved');
+                cellEls = blank2d(N, N, null);
+                var span = 2 * N - 1;
+                for (var gr = 0; gr < span; gr++) {
+                    for (var gc = 0; gc < span; gc++) {
+                        var d = document.createElement('div');
+                        if (gr % 2 === 0 && gc % 2 === 0) {
+                            var r = gr / 2, c = gc / 2;
+                            d.className = 'fcell';
+                            cellEls[r][c] = d;
+                            if (givenGrid[r][c] !== 0) d.classList.add('given');
+                            (function (rr, cc) { d.addEventListener('click', function () { selectCell(rr, cc); }); })(r, c);
+                        } else if (gr % 2 === 0 && gc % 2 === 1) {
+                            d.className = 'sign';
+                            var rel = hSign[gr / 2][(gc - 1) / 2];
+                            if (rel) d.appendChild(document.createTextNode(signChar('H', rel)));
+                        } else if (gr % 2 === 1 && gc % 2 === 0) {
+                            d.className = 'sign';
+                            var relv = vSign[(gr - 1) / 2][gc / 2];
+                            if (relv) d.appendChild(signChar('V', relv));
+                        } else {
+                            d.className = 'sign';
+                        }
+                        grid.appendChild(d);
+                    }
+                }
+                paint();
+            }
+
+            function badCells() {
+                var bad = {};
+                var r, c, v;
+                for (r = 0; r < N; r++) {
+                    var seenR = {};
+                    for (c = 0; c < N; c++) {
+                        v = userGrid[r][c];
+                        if (!v) continue;
+                        if (seenR[v]) { bad[r + ',' + c] = 1; bad[seenR[v]] = 1; } else seenR[v] = r + ',' + c;
+                    }
+                }
+                for (c = 0; c < N; c++) {
+                    var seenC = {};
+                    for (r = 0; r < N; r++) {
+                        v = userGrid[r][c];
+                        if (!v) continue;
+                        if (seenC[v]) { bad[r + ',' + c] = 1; bad[seenC[v]] = 1; } else seenC[v] = r + ',' + c;
+                    }
+                }
+                for (r = 0; r < N; r++) for (c = 0; c < N - 1; c++) {
+                    var rel = hSign[r][c]; if (!rel) continue;
+                    var a = userGrid[r][c], b = userGrid[r][c + 1];
+                    if (a && b && (rel === 'gt' ? !(a > b) : !(a < b))) { bad[r + ',' + c] = 1; bad[r + ',' + (c + 1)] = 1; }
+                }
+                for (r = 0; r < N - 1; r++) for (c = 0; c < N; c++) {
+                    var relv = vSign[r][c]; if (!relv) continue;
+                    var a2 = userGrid[r][c], b2 = userGrid[r + 1][c];
+                    if (a2 && b2 && (relv === 'gt' ? !(a2 > b2) : !(a2 < b2))) { bad[r + ',' + c] = 1; bad[(r + 1) + ',' + c] = 1; }
+                }
+                return bad;
+            }
+
+            function paint() {
+                var bad = badCells();
+                var filled = true;
+                for (var r = 0; r < N; r++) for (var c = 0; c < N; c++) {
+                    var el = cellEls[r][c], v = userGrid[r][c];
+                    el.textContent = v ? v : '';
+                    el.classList.toggle('given', givenGrid[r][c] !== 0);
+                    el.classList.toggle('bad', !!bad[r + ',' + c]);
+                    el.classList.toggle('sel', !!selected && selected.r === r && selected.c === c);
+                    if (!v) filled = false;
+                }
+                if (filled && Object.keys(bad).length === 0 && !solved) win();
+            }
+
+            function selectCell(r, c) {
+                if (solved || givenGrid[r][c] !== 0) return;
+                selected = { r: r, c: c };
+                paint();
+            }
+            function setSelectedValue(v) {
+                if (solved || !selected) return;
+                var r = selected.r, c = selected.c;
+                if (givenGrid[r][c] !== 0) return;
+                userGrid[r][c] = v;
+                paint();
+            }
+            function moveSelection(dr, dc) {
+                if (!selected) { selected = { r: 0, c: 0 }; paint(); return; }
+                var r = Math.max(0, Math.min(N - 1, selected.r + dr));
+                var c = Math.max(0, Math.min(N - 1, selected.c + dc));
+                selected = { r: r, c: c }; paint();
+            }
+            function win() {
+                solved = true; selected = null;
+                grid.classList.add('solved');
+                setStatus('Fat Ott is pleased.', true);
+                ensureAudio();
+                blip(523, 0.14, 'triangle');
+                setTimeout(function () { blip(784, 0.22, 'triangle'); }, 130);
+                var box = grid.getBoundingClientRect();
+                for (var i = 0; i < 6; i++) {
+                    (function (k) {
+                        setTimeout(function () {
+                            popAt(box.left + Math.random() * box.width, box.top + Math.random() * box.height, '✨');
+                        }, k * 70);
+                    })(i);
+                }
+            }
+            function setStatus(msg, isWin) {
+                statusEl.textContent = msg;
+                statusEl.classList.toggle('win', !!isWin);
+            }
+            function hint() {
+                if (solved) return;
+                var empties = [];
+                for (var r = 0; r < N; r++) for (var c = 0; c < N; c++)
+                    if (givenGrid[r][c] === 0 && userGrid[r][c] !== solution[r][c]) empties.push([r, c]);
+                if (!empties.length) return;
+                var pick = empties[Math.floor(Math.random() * empties.length)];
+                userGrid[pick[0]][pick[1]] = solution[pick[0]][pick[1]];
+                selected = { r: pick[0], c: pick[1] };
+                paint();
+            }
+            function restart() {
+                if (!givenGrid) return;
+                userGrid = givenGrid.map(function (row) { return row.slice(); });
+                selected = null; solved = false;
+                grid.classList.remove('solved');
+                render();
+                setStatus('Fill every row & column with 1–5, no repeats. A sign’s open side faces the larger number.', false);
+            }
+
+            // Number pad (1..N + erase)
+            for (var n = 1; n <= N; n++) {
+                (function (val) {
+                    var b = document.createElement('button');
+                    b.textContent = val;
+                    b.addEventListener('click', function () { setSelectedValue(val); });
+                    pad.appendChild(b);
+                })(n);
+            }
+            var eraseBtn = document.createElement('button');
+            eraseBtn.innerHTML = '&times;';
+            eraseBtn.addEventListener('click', function () { setSelectedValue(0); });
+            pad.appendChild(eraseBtn);
+
+            diffSel.addEventListener('change', newPuzzle);
+            document.getElementById('fk-new').addEventListener('click', newPuzzle);
+            document.getElementById('fk-restart').addEventListener('click', restart);
+            document.getElementById('fk-hint').addEventListener('click', hint);
+
+            document.addEventListener('keydown', function (e) {
+                if (document.body.dataset.view !== 'futoshiki') return;
+                if (e.key >= '1' && e.key <= String(N)) { setSelectedValue(parseInt(e.key, 10)); e.preventDefault(); }
+                else if (e.key === '0' || e.key === 'Backspace' || e.key === 'Delete') { setSelectedValue(0); e.preventDefault(); }
+                else if (e.key === 'ArrowUp') { moveSelection(-1, 0); e.preventDefault(); }
+                else if (e.key === 'ArrowDown') { moveSelection(1, 0); e.preventDefault(); }
+                else if (e.key === 'ArrowLeft') { moveSelection(0, -1); e.preventDefault(); }
+                else if (e.key === 'ArrowRight') { moveSelection(0, 1); e.preventDefault(); }
+            });
+
+            return { newPuzzle: newPuzzle, get puzzle() { return solution; } };
+        })();
+    })();
+    </script>
 </body>
 </html>
