@@ -353,6 +353,11 @@
     <!-- Futoshiki -->
     <section id="futoshiki-view">
         <div class="fk-controls">
+            <select id="fk-size" aria-label="Grid size">
+                <option value="5">5&times;5</option>
+                <option value="6">6&times;6</option>
+                <option value="7">7&times;7</option>
+            </select>
             <select id="fk-diff" aria-label="Difficulty">
                 <option value="easy">Easy</option>
                 <option value="hard">Hard</option>
@@ -559,6 +564,7 @@
             var pad = document.getElementById('fk-pad');
             var statusEl = document.getElementById('fk-status');
             var diffSel = document.getElementById('fk-diff');
+            var sizeSel = document.getElementById('fk-size');
 
             var solution = null;     // full solved grid
             var givenGrid = null;    // starting clues (0 = blank)
@@ -593,61 +599,82 @@
                 return true;
             }
 
-            // Count solutions (capped at 2) given a prefilled grid + current signs.
+            // Count solutions, capped at 2. Uses a minimum-remaining-values
+            // search (always branch on the most-constrained empty cell) so even
+            // sparse 7x7 grids resolve fast. A node budget guards the worst
+            // case: if exceeded we report "not unique" (2) so the caller keeps
+            // the clue — conservative, and generation never hangs.
             function countSolutions(prefill) {
                 var g = prefill.map(function (row) { return row.slice(); });
-                var empties = [];
-                for (var r = 0; r < N; r++) for (var c = 0; c < N; c++) if (g[r][c] === 0) empties.push([r, c]);
-                var count = 0;
-                (function bt(i) {
-                    if (count >= 2) return;
-                    if (i === empties.length) { count++; return; }
-                    var r = empties[i][0], c = empties[i][1];
-                    for (var v = 1; v <= N; v++) {
-                        if (consistent(g, r, c, v)) { g[r][c] = v; bt(i + 1); g[r][c] = 0; if (count >= 2) return; }
+                var count = 0, nodes = 0, capped = false, CAP = 300000;
+                (function solve() {
+                    if (capped || count >= 2) return;
+                    var bestR = -1, bestC = -1, bestCands = null, bestLen = 99;
+                    for (var r = 0; r < N && bestLen > 1; r++) {
+                        for (var c = 0; c < N; c++) {
+                            if (g[r][c] !== 0) continue;
+                            var cands = [];
+                            for (var v = 1; v <= N; v++) if (consistent(g, r, c, v)) cands.push(v);
+                            if (cands.length < bestLen) { bestLen = cands.length; bestR = r; bestC = c; bestCands = cands; if (bestLen <= 1) break; }
+                        }
                     }
-                })(0);
-                return count;
+                    if (bestR === -1) { count++; return; }   // grid full -> one solution
+                    if (bestLen === 0) return;               // dead end -> prune
+                    for (var k = 0; k < bestCands.length; k++) {
+                        if (++nodes > CAP) { capped = true; return; }
+                        g[bestR][bestC] = bestCands[k];
+                        solve();
+                        g[bestR][bestC] = 0;
+                        if (count >= 2 || capped) return;
+                    }
+                })();
+                return capped ? 2 : count;
             }
 
             function generateSolution() {
-                var g = blank2d(N, N, 0);
-                (function fill(idx) {
-                    if (idx === N * N) return true;
-                    var r = Math.floor(idx / N), c = idx % N;
-                    var vals = shuffle([1, 2, 3, 4, 5]);
-                    for (var k = 0; k < vals.length; k++) {
-                        var v = vals[k];
-                        var ok = true;
-                        for (var i = 0; i < N; i++) { if (g[r][i] === v || g[i][c] === v) { ok = false; break; } }
-                        if (ok) { g[r][c] = v; if (fill(idx + 1)) return true; g[r][c] = 0; }
-                    }
-                    return false;
-                })(0);
-                return g;
+                // Build a cyclic Latin square, then permute rows, columns, and
+                // symbol labels — a valid random solution with no backtracking
+                // (keeps generation instant at any N).
+                var base = [];
+                for (var r = 0; r < N; r++) { base.push([]); for (var c = 0; c < N; c++) base[r].push(((r + c) % N) + 1); }
+                var rowOrder = [], colOrder = [], sym = [];
+                for (var k = 0; k < N; k++) { rowOrder.push(k); colOrder.push(k); sym.push(k + 1); }
+                shuffle(rowOrder); shuffle(colOrder); shuffle(sym);
+                var out = [];
+                for (var i = 0; i < N; i++) {
+                    out.push([]);
+                    for (var j = 0; j < N; j++) out[i].push(sym[base[rowOrder[i]][colOrder[j]] - 1]);
+                }
+                return out;
             }
 
             function newPuzzle() {
+                N = parseInt(sizeSel.value, 10) || 5;
                 var diff = diffSel.value;
+                buildPad();
                 solution = generateSolution();
                 hSign = blank2d(N, N - 1, null);
                 vSign = blank2d(N - 1, N, null);
 
                 // Candidate inequality positions, then keep a random K of them.
+                // Scale K with the grid: larger grids need more clues to stay unique.
                 var pairs = [];
                 var r, c;
                 for (r = 0; r < N; r++) for (c = 0; c < N - 1; c++) pairs.push({ t: 'H', r: r, c: c });
                 for (r = 0; r < N - 1; r++) for (c = 0; c < N; c++) pairs.push({ t: 'V', r: r, c: c });
                 shuffle(pairs);
-                var K = diff === 'hard' ? 7 : 11;
+                var K = Math.round(pairs.length * (diff === 'hard' ? 0.16 : 0.28));
                 for (var p = 0; p < K; p++) {
                     var pr = pairs[p];
                     if (pr.t === 'H') hSign[pr.r][pr.c] = solution[pr.r][pr.c] > solution[pr.r][pr.c + 1] ? 'gt' : 'lt';
                     else vSign[pr.r][pr.c] = solution[pr.r][pr.c] > solution[pr.r + 1][pr.c] ? 'gt' : 'lt';
                 }
 
-                // Start fully revealed, then strip clues while the puzzle stays unique.
+                // Start fully revealed, then strip clues while the puzzle stays
+                // unique, down to a difficulty-based floor — keeps larger grids
+                // both solvable and fast to verify.
                 givenGrid = solution.map(function (row) { return row.slice(); });
+                var floor = Math.ceil(N * N * (diff === 'hard' ? 0.20 : 0.34));
                 var keys = [];
                 for (r = 0; r < N; r++) for (c = 0; c < N; c++) keys.push([r, c]);
                 shuffle(keys);
@@ -657,7 +684,7 @@
                     givenGrid[kr][kc] = 0;
                     if (countSolutions(givenGrid) === 1) {
                         givenCount--;
-                        if (diff === 'easy' && givenCount <= 8) break;
+                        if (givenCount <= floor) break;
                     } else {
                         givenGrid[kr][kc] = saved;
                     }
@@ -666,7 +693,7 @@
                 userGrid = givenGrid.map(function (row) { return row.slice(); });
                 selected = null; solved = false;
                 render();
-                setStatus('Fill every row & column with 1–5, no repeats. A sign’s open side faces the larger number.', false);
+                setStatus(instructions(), false);
             }
 
             function signChar(t, rel) {
@@ -679,9 +706,26 @@
                 return span;
             }
 
+            // Size the grid so all 2N-1 tracks fit the viewport; cells shrink as
+            // N grows. Inline styles override the static CSS template.
+            function sizeGrid() {
+                var maxW = Math.min((window.innerWidth || 400) * 0.92, 540);
+                var cell = Math.max(30, Math.min(58, maxW / (N + 0.5 * (N - 1))));
+                var gap = Math.round(cell * 0.5);
+                cell = Math.round(cell);
+                grid.style.setProperty('--c', cell + 'px');
+                grid.style.setProperty('--g', gap + 'px');
+                var tracks = [];
+                for (var i = 0; i < 2 * N - 1; i++) tracks.push(i % 2 ? 'var(--g)' : 'var(--c)');
+                var tpl = tracks.join(' ');
+                grid.style.gridTemplateColumns = tpl;
+                grid.style.gridTemplateRows = tpl;
+            }
+
             function render() {
                 grid.innerHTML = '';
                 grid.classList.remove('solved');
+                sizeGrid();
                 cellEls = blank2d(N, N, null);
                 var span = 2 * N - 1;
                 for (var gr = 0; gr < span; gr++) {
@@ -805,33 +849,46 @@
                 selected = { r: pick[0], c: pick[1] };
                 paint();
             }
+            function instructions() {
+                return 'Fill every row & column with 1–' + N + ', no repeats. A sign’s open side faces the larger number.';
+            }
             function restart() {
                 if (!givenGrid) return;
                 userGrid = givenGrid.map(function (row) { return row.slice(); });
                 selected = null; solved = false;
                 grid.classList.remove('solved');
                 render();
-                setStatus('Fill every row & column with 1–5, no repeats. A sign’s open side faces the larger number.', false);
+                setStatus(instructions(), false);
             }
 
-            // Number pad (1..N + erase)
-            for (var n = 1; n <= N; n++) {
-                (function (val) {
-                    var b = document.createElement('button');
-                    b.textContent = val;
-                    b.addEventListener('click', function () { setSelectedValue(val); });
-                    pad.appendChild(b);
-                })(n);
+            // Number pad (1..N + erase), rebuilt whenever the grid size changes.
+            function buildPad() {
+                pad.innerHTML = '';
+                for (var n = 1; n <= N; n++) {
+                    (function (val) {
+                        var b = document.createElement('button');
+                        b.textContent = val;
+                        b.addEventListener('click', function () { setSelectedValue(val); });
+                        pad.appendChild(b);
+                    })(n);
+                }
+                var eraseBtn = document.createElement('button');
+                eraseBtn.innerHTML = '&times;';
+                eraseBtn.addEventListener('click', function () { setSelectedValue(0); });
+                pad.appendChild(eraseBtn);
             }
-            var eraseBtn = document.createElement('button');
-            eraseBtn.innerHTML = '&times;';
-            eraseBtn.addEventListener('click', function () { setSelectedValue(0); });
-            pad.appendChild(eraseBtn);
 
+            sizeSel.addEventListener('change', newPuzzle);
             diffSel.addEventListener('change', newPuzzle);
             document.getElementById('fk-new').addEventListener('click', newPuzzle);
             document.getElementById('fk-restart').addEventListener('click', restart);
             document.getElementById('fk-hint').addEventListener('click', hint);
+            var resizeTimer;
+            window.addEventListener('resize', function () {
+                if (document.body.dataset.view !== 'futoshiki' || !solution) return;
+                clearTimeout(resizeTimer);
+                resizeTimer = setTimeout(render, 150);
+            });
 
             document.addEventListener('keydown', function (e) {
                 if (document.body.dataset.view !== 'futoshiki') return;
