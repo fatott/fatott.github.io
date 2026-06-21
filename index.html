@@ -86,19 +86,21 @@
                 radial-gradient(ellipse 46% 42% at 48% 58%, rgba(255,120,30,.16), transparent 72%);
             animation: flicker 5s linear infinite;
         }
+        /* Opacity-only flicker: cheap to composite on mobile (animating
+           `filter` over a blend layer forces a repaint every frame). */
         @keyframes flicker {
-            0%, 100% { opacity: .90; filter: brightness(1); }
-            8%  { opacity: .78; }
-            12% { opacity: 1.0; filter: brightness(1.15); }
-            20% { opacity: .72; }
+            0%, 100% { opacity: .88; }
+            8%  { opacity: .76; }
+            12% { opacity: 1.0; }
+            20% { opacity: .70; }
             27% { opacity: .95; }
-            36% { opacity: .83; }
-            44% { opacity: 1.0; filter: brightness(1.22); }
-            52% { opacity: .70; }
+            36% { opacity: .82; }
+            44% { opacity: 1.0; }
+            52% { opacity: .68; }
             61% { opacity: .92; }
-            72% { opacity: .80; }
-            80% { opacity: 1.0; filter: brightness(1.12); }
-            88% { opacity: .76; }
+            72% { opacity: .78; }
+            80% { opacity: 1.0; }
+            88% { opacity: .74; }
         }
 
         a.email {
@@ -256,6 +258,9 @@
         }
         .fk-controls button:hover, .fk-controls select:hover { border-color: var(--ember); color: var(--ember); }
 
+        .fk-timer { font-family: 'MedievalSharp', cursive; color: var(--ash); font-size: .95rem; letter-spacing: .05em; }
+        .fk-timer span { color: var(--ember); }
+
         .fk-grid {
             display: grid;
             --c: clamp(40px, 12vw, 56px);
@@ -353,11 +358,6 @@
     <!-- Futoshiki -->
     <section id="futoshiki-view">
         <div class="fk-controls">
-            <select id="fk-size" aria-label="Grid size">
-                <option value="5">5&times;5</option>
-                <option value="6">6&times;6</option>
-                <option value="7">7&times;7</option>
-            </select>
             <select id="fk-diff" aria-label="Difficulty">
                 <option value="easy">Easy</option>
                 <option value="hard">Hard</option>
@@ -366,6 +366,7 @@
             <button id="fk-restart">Restart</button>
             <button id="fk-hint">Hint</button>
         </div>
+        <div class="fk-timer"><span id="fk-time">0:00</span> &middot; best <span id="fk-best">&mdash;</span></div>
         <div id="fk-grid" class="fk-grid"></div>
         <div class="fk-pad" id="fk-pad"></div>
         <div class="fk-status" id="fk-status">Fill every row &amp; column with 1&ndash;5, no repeats. A sign&rsquo;s open side faces the larger number.</div>
@@ -389,11 +390,13 @@
         var tabs = Array.prototype.slice.call(document.querySelectorAll('.tab'));
 
         function showView(name) {
-            if (document.body.dataset.view === 'arcade' && name !== 'arcade') stopArcade();
+            var prev = document.body.dataset.view;
+            if (prev === 'arcade' && name !== 'arcade') stopArcade();
+            if (prev === 'futoshiki' && name !== 'futoshiki') FK.pause();
             document.body.dataset.view = name;
             tabs.forEach(function (t) { t.classList.toggle('active', t.dataset.view === name); });
             if (name === 'arcade') resetArcadePanels();
-            if (name === 'futoshiki' && !FK.puzzle) FK.newPuzzle();
+            if (name === 'futoshiki') { if (!FK.puzzle) FK.newPuzzle(); else FK.resume(); }
         }
         tabs.forEach(function (t) { t.addEventListener('click', function () { showView(t.dataset.view); }); });
 
@@ -564,7 +567,6 @@
             var pad = document.getElementById('fk-pad');
             var statusEl = document.getElementById('fk-status');
             var diffSel = document.getElementById('fk-diff');
-            var sizeSel = document.getElementById('fk-size');
 
             var solution = null;     // full solved grid
             var givenGrid = null;    // starting clues (0 = blank)
@@ -574,11 +576,34 @@
             var cellEls = null;      // [r][c] -> DOM
             var selected = null;     // {r,c}
             var solved = false;
+            var elapsed = 0, timerInt = null, running = false;
+            var fkTimeEl = document.getElementById('fk-time');
+            var fkBestEl = document.getElementById('fk-best');
 
             function blank2d(rows, cols, fill) {
                 var a = [];
                 for (var r = 0; r < rows; r++) { a.push([]); for (var c = 0; c < cols; c++) a[r].push(fill); }
                 return a;
+            }
+
+            // --- Solve timer (counts up; pauses when you leave the tab) ---
+            function fmtTime(s) { return Math.floor(s / 60) + ':' + ('0' + (s % 60)).slice(-2); }
+            function showTime() { fkTimeEl.textContent = fmtTime(elapsed); }
+            function startTimer() {
+                elapsed = 0; showTime();
+                clearInterval(timerInt); running = true;
+                timerInt = setInterval(function () { elapsed++; showTime(); }, 1000);
+            }
+            function pauseTimer() { clearInterval(timerInt); running = false; }
+            function resumeTimer() {
+                if (solved || !solution || running) return;
+                running = true;
+                timerInt = setInterval(function () { elapsed++; showTime(); }, 1000);
+            }
+            function bestKey() { return 'fatott_fk_best_' + diffSel.value; }
+            function updateBestDisplay() {
+                var b = parseInt(localStorage.getItem(bestKey()) || '0', 10);
+                fkBestEl.textContent = b > 0 ? fmtTime(b) : '—';
             }
 
             function consistent(g, r, c, v) {
@@ -649,7 +674,6 @@
             }
 
             function newPuzzle() {
-                N = parseInt(sizeSel.value, 10) || 5;
                 var diff = diffSel.value;
                 buildPad();
                 solution = generateSolution();
@@ -694,6 +718,8 @@
                 selected = null; solved = false;
                 render();
                 setStatus(instructions(), false);
+                updateBestDisplay();
+                startTimer();
             }
 
             function signChar(t, rel) {
@@ -820,8 +846,13 @@
             }
             function win() {
                 solved = true; selected = null;
+                pauseTimer();
+                var prevBest = parseInt(localStorage.getItem(bestKey()) || '0', 10);
+                var isBest = prevBest === 0 || elapsed < prevBest;
+                if (isBest) localStorage.setItem(bestKey(), String(elapsed));
+                updateBestDisplay();
                 grid.classList.add('solved');
-                setStatus('Fat Ott is pleased.', true);
+                setStatus('Fat Ott is pleased — solved in ' + fmtTime(elapsed) + (isBest ? ' (new best!)' : ''), true);
                 ensureAudio();
                 blip(523, 0.14, 'triangle');
                 setTimeout(function () { blip(784, 0.22, 'triangle'); }, 130);
@@ -859,6 +890,7 @@
                 grid.classList.remove('solved');
                 render();
                 setStatus(instructions(), false);
+                startTimer();
             }
 
             // Number pad (1..N + erase), rebuilt whenever the grid size changes.
@@ -878,7 +910,6 @@
                 pad.appendChild(eraseBtn);
             }
 
-            sizeSel.addEventListener('change', newPuzzle);
             diffSel.addEventListener('change', newPuzzle);
             document.getElementById('fk-new').addEventListener('click', newPuzzle);
             document.getElementById('fk-restart').addEventListener('click', restart);
@@ -900,7 +931,7 @@
                 else if (e.key === 'ArrowRight') { moveSelection(0, 1); e.preventDefault(); }
             });
 
-            return { newPuzzle: newPuzzle, get puzzle() { return solution; } };
+            return { newPuzzle: newPuzzle, pause: pauseTimer, resume: resumeTimer, get puzzle() { return solution; } };
         })();
     })();
     </script>
