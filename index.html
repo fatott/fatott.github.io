@@ -316,6 +316,21 @@
         }
         .fk-status.win { color: var(--ember); opacity: 1; font-size: 1.1rem; text-shadow: 0 0 12px rgba(255,120,30,.6); }
 
+        /* Bridges (Hashi) ---------------------------------------------- */
+        #bridges-view { display: none; flex-direction: column; align-items: center; gap: 1rem; }
+        body[data-view="bridges"] #bridges-view { display: flex; }
+        body[data-view="bridges"] { justify-content: flex-start; overflow-y: auto; padding: 1.4rem 0 2rem; }
+
+        #br-board svg { width: min(92vw, 360px); height: auto; display: block; touch-action: manipulation; }
+        .br-bridge { stroke: var(--ash); stroke-width: 2.6; stroke-linecap: round; }
+        .br-island { cursor: pointer; }
+        .br-island .hit { fill: transparent; }
+        .br-island .isle { fill: #11201f; stroke: var(--ash); stroke-width: 2.4; transition: stroke .15s; }
+        .br-island.sel .isle { stroke: var(--ember); }
+        .br-island.done .isle { stroke: #4a7d6d; }
+        .br-island.over .isle { stroke: #ff5b5b; }
+        .br-island text { fill: var(--ember); font-family: 'MedievalSharp', cursive; text-anchor: middle; dominant-baseline: central; pointer-events: none; }
+
         @media (prefers-reduced-motion: reduce) { .glow { animation: none; opacity: .9; } }
     </style>
 </head>
@@ -328,6 +343,7 @@
         <button class="tab active" data-view="home">Home</button>
         <button class="tab" data-view="arcade">Feed Fat Ott</button>
         <button class="tab" data-view="futoshiki">Futoshiki</button>
+        <button class="tab" data-view="bridges">Bridges</button>
     </nav>
 
     <div class="pumpkin-wrap">
@@ -372,6 +388,22 @@
         <div class="fk-status" id="fk-status">Fill every row &amp; column with 1&ndash;5, no repeats. A sign&rsquo;s open side faces the larger number.</div>
     </section>
 
+    <!-- Bridges -->
+    <section id="bridges-view">
+        <div class="fk-controls">
+            <select id="br-diff" aria-label="Difficulty">
+                <option value="easy">Easy</option>
+                <option value="hard">Hard</option>
+            </select>
+            <button id="br-new">New puzzle</button>
+            <button id="br-restart">Restart</button>
+            <button id="br-hint">Hint</button>
+        </div>
+        <div class="fk-timer"><span id="br-time">0:00</span> &middot; best <span id="br-best">&mdash;</span></div>
+        <div id="br-board"></div>
+        <div class="fk-status" id="br-status">Connect the islands so each has exactly its number of bridges, all joined into one network. Tap an island, then another in line with it.</div>
+    </section>
+
     <script>
     (function () {
         'use strict';
@@ -393,10 +425,12 @@
             var prev = document.body.dataset.view;
             if (prev === 'arcade' && name !== 'arcade') stopArcade();
             if (prev === 'futoshiki' && name !== 'futoshiki') FK.pause();
+            if (prev === 'bridges' && name !== 'bridges') BR.pause();
             document.body.dataset.view = name;
             tabs.forEach(function (t) { t.classList.toggle('active', t.dataset.view === name); });
             if (name === 'arcade') resetArcadePanels();
             if (name === 'futoshiki') { if (!FK.puzzle) FK.newPuzzle(); else FK.resume(); }
+            if (name === 'bridges') { if (!BR.puzzle) BR.newPuzzle(); else BR.resume(); }
         }
         tabs.forEach(function (t) { t.addEventListener('click', function () { showView(t.dataset.view); }); });
 
@@ -932,6 +966,251 @@
             });
 
             return { newPuzzle: newPuzzle, pause: pauseTimer, resume: resumeTimer, get puzzle() { return solution; } };
+        })();
+
+        /* =========================================================
+           Bridges (Hashiwokakero)
+        ========================================================= */
+        var BR = (function () {
+            var U = 40;                          // SVG units per grid cell
+            var board = document.getElementById('br-board');
+            var statusEl = document.getElementById('br-status');
+            var diffSel = document.getElementById('br-diff');
+
+            var G = 7;                            // grid size (cells per side)
+            var islands = [];                     // [{r, c}, ...]
+            var clue = [];                        // required bridge count per island
+            var sol = {};                         // generator's solution: "i-j" -> 1|2
+            var pb = {};                          // player's bridges: "i-j" -> 1|2
+            var sel = null;                       // selected island index
+            var solved = false;
+
+            var elapsed = 0, timerInt = null, running = false;
+            var brTimeEl = document.getElementById('br-time');
+            var brBestEl = document.getElementById('br-best');
+
+            var DIRS = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+            function randInt(n) { return Math.floor(Math.random() * n); }
+            function key(a, b) { return a < b ? a + '-' + b : b + '-' + a; }
+            function parsePair(k) { var p = k.split('-'); return [parseInt(p[0], 10), parseInt(p[1], 10)]; }
+
+            // --- Solve timer (counts up; pauses when you leave the tab) ---
+            function fmtTime(s) { return Math.floor(s / 60) + ':' + ('0' + (s % 60)).slice(-2); }
+            function showTime() { brTimeEl.textContent = fmtTime(elapsed); }
+            function startTimer() {
+                elapsed = 0; showTime();
+                clearInterval(timerInt); running = true;
+                timerInt = setInterval(function () { elapsed++; showTime(); }, 1000);
+            }
+            function pauseTimer() { clearInterval(timerInt); running = false; }
+            function resumeTimer() {
+                if (solved || !islands.length || running) return;
+                running = true;
+                timerInt = setInterval(function () { elapsed++; showTime(); }, 1000);
+            }
+            function bestKey() { return 'fatott_br_best_' + diffSel.value; }
+            function updateBestDisplay() {
+                var b = parseInt(localStorage.getItem(bestKey()) || '0', 10);
+                brBestEl.textContent = b > 0 ? fmtTime(b) : '—';
+            }
+
+            // --- geometry helpers (operate on current islands) ---
+            function pathCells(a, b) {            // cells strictly between two collinear islands
+                var A = islands[a], B = islands[b], cells = [];
+                if (A.r === B.r) { var c1 = Math.min(A.c, B.c), c2 = Math.max(A.c, B.c); for (var c = c1 + 1; c < c2; c++) cells.push([A.r, c]); }
+                else { var r1 = Math.min(A.r, B.r), r2 = Math.max(A.r, B.r); for (var r = r1 + 1; r < r2; r++) cells.push([r, A.c]); }
+                return cells;
+            }
+            function islandAt(r, c) { for (var i = 0; i < islands.length; i++) if (islands[i].r === r && islands[i].c === c) return i; return -1; }
+            function orient(a, b) { return islands[a].r === islands[b].r ? 'H' : 'V'; }
+            function clearLine(a, b) {            // collinear with no island strictly between
+                if (islands[a].r !== islands[b].r && islands[a].c !== islands[b].c) return false;
+                var cells = pathCells(a, b);
+                for (var i = 0; i < cells.length; i++) if (islandAt(cells[i][0], cells[i][1]) !== -1) return false;
+                return true;
+            }
+            function occupancy(bridges, excludeKey) {
+                var occ = {};
+                for (var k in bridges) {
+                    if (k === excludeKey || !bridges[k]) continue;
+                    var p = parsePair(k), o = orient(p[0], p[1]), cells = pathCells(p[0], p[1]);
+                    for (var i = 0; i < cells.length; i++) occ[cells[i][0] + ',' + cells[i][1]] = o;
+                }
+                return occ;
+            }
+            function crosses(a, b) {              // would a new bridge a-b cross an existing one?
+                var o = orient(a, b), occ = occupancy(pb, key(a, b)), cells = pathCells(a, b);
+                for (var i = 0; i < cells.length; i++) { var e = occ[cells[i][0] + ',' + cells[i][1]]; if (e && e !== o) return true; }
+                return false;
+            }
+
+            // --- generation: grow a connected island network, then enrich it ---
+            function generate(diff) {
+                G = diff === 'hard' ? 9 : 7;
+                var targetN = diff === 'hard' ? 13 : 8;
+                var maxReach = 4;
+                var best = null;
+                for (var attempt = 0; attempt < 80; attempt++) {
+                    var occ = []; for (var i = 0; i < G; i++) { occ.push([]); for (var j = 0; j < G; j++) occ[i].push(0); }
+                    var isl = [{ r: randInt(G), c: randInt(G) }];
+                    occ[isl[0].r][isl[0].c] = 'I';
+                    var br = {};
+                    var tries = 0;
+                    while (isl.length < targetN && tries < 500) {
+                        tries++;
+                        var aIdx = randInt(isl.length), A = isl[aIdx];
+                        var dir = DIRS[randInt(4)];
+                        var d = 2 + randInt(maxReach - 1);          // length >= 2 so bridges are visible
+                        var nr = A.r + dir[0] * d, nc = A.c + dir[1] * d;
+                        if (nr < 0 || nr >= G || nc < 0 || nc >= G || occ[nr][nc] !== 0) continue;
+                        var cells = [], ok = true;
+                        for (var s = 1; s < d; s++) { var pr = A.r + dir[0] * s, pc = A.c + dir[1] * s; if (occ[pr][pc] !== 0) { ok = false; break; } cells.push([pr, pc]); }
+                        if (!ok) continue;
+                        var bIdx = isl.length; isl.push({ r: nr, c: nc }); occ[nr][nc] = 'I';
+                        var o = dir[0] !== 0 ? 'V' : 'H';
+                        for (var k2 = 0; k2 < cells.length; k2++) occ[cells[k2][0]][cells[k2][1]] = o;
+                        br[key(aIdx, bIdx)] = Math.random() < 0.45 ? 2 : 1;   // ~45% double bridges
+                    }
+                    if (!best || isl.length > best.isl.length) best = { isl: isl, br: br };
+                    if (isl.length >= targetN) break;
+                }
+                islands = best.isl; sol = best.br;
+                addExtra(diff);
+                clue = islands.map(function () { return 0; });
+                for (var k in sol) { var p = parsePair(k); clue[p[0]] += sol[k]; clue[p[1]] += sol[k]; }
+            }
+
+            function addExtra(diff) {
+                var p = diff === 'hard' ? 0.5 : 0.3;
+                var cands = [], seen = {};
+                for (var i = 0; i < islands.length; i++) {
+                    for (var di = 0; di < 4; di++) {
+                        var dir = DIRS[di], r = islands[i].r + dir[0], c = islands[i].c + dir[1], steps = 0, found = -1;
+                        while (r >= 0 && r < G && c >= 0 && c < G) {
+                            var at = islandAt(r, c);
+                            if (at !== -1) { found = at; break; }
+                            r += dir[0]; c += dir[1]; if (++steps > G) break;
+                        }
+                        if (found !== -1) { var kk = key(i, found); if (!seen[kk]) { seen[kk] = 1; cands.push([Math.min(i, found), Math.max(i, found)]); } }
+                    }
+                }
+                for (var ci = 0; ci < cands.length; ci++) {
+                    if (Math.random() > p) continue;
+                    var a = cands[ci][0], b = cands[ci][1], k = key(a, b), cur = sol[k] || 0;
+                    if (cur >= 2) continue;
+                    if (cur === 0) {
+                        var o = orient(a, b), cells = pathCells(a, b), occMap = occupancy(sol, null), blocked = false;
+                        for (var x = 0; x < cells.length; x++) if (occMap[cells[x][0] + ',' + cells[x][1]]) { blocked = true; break; }
+                        if (!blocked) sol[k] = 1;
+                    } else if (Math.random() < 0.5) { sol[k] = 2; }
+                }
+            }
+
+            // --- rendering ---
+            function islandSums() {
+                var s = islands.map(function () { return 0; });
+                for (var k in pb) { if (!pb[k]) continue; var p = parsePair(k); s[p[0]] += pb[k]; s[p[1]] += pb[k]; }
+                return s;
+            }
+            function lineSVG(x1, y1, x2, y2) { return '<line class="br-bridge" x1="' + x1 + '" y1="' + y1 + '" x2="' + x2 + '" y2="' + y2 + '"></line>'; }
+            function bridgeSVG(a, b, count) {
+                var x1 = islands[a].c * U + U / 2, y1 = islands[a].r * U + U / 2, x2 = islands[b].c * U + U / 2, y2 = islands[b].r * U + U / 2;
+                if (count === 1) return lineSVG(x1, y1, x2, y2);
+                if (y1 === y2) return lineSVG(x1, y1 - 4, x2, y2 - 4) + lineSVG(x1, y1 + 4, x2, y2 + 4);
+                return lineSVG(x1 - 4, y1, x2 - 4, y2) + lineSVG(x1 + 4, y1, x2 + 4, y2);
+            }
+            function render() {
+                var size = G * U, sums = islandSums();
+                var s = '<svg viewBox="0 0 ' + size + ' ' + size + '" xmlns="http://www.w3.org/2000/svg"><g>';
+                for (var k in pb) { if (!pb[k]) continue; var p = parsePair(k); s += bridgeSVG(p[0], p[1], pb[k]); }
+                s += '</g><g>';
+                for (var i = 0; i < islands.length; i++) {
+                    var x = islands[i].c * U + U / 2, y = islands[i].r * U + U / 2;
+                    var cls = 'br-island'; if (i === sel) cls += ' sel'; if (sums[i] === clue[i]) cls += ' done'; else if (sums[i] > clue[i]) cls += ' over';
+                    s += '<g class="' + cls + '" data-i="' + i + '">'
+                       + '<circle class="hit" cx="' + x + '" cy="' + y + '" r="19"></circle>'
+                       + '<circle class="isle" cx="' + x + '" cy="' + y + '" r="15"></circle>'
+                       + '<text x="' + x + '" y="' + y + '" font-size="19">' + clue[i] + '</text></g>';
+                }
+                s += '</g></svg>';
+                board.innerHTML = s;
+                var nodes = board.querySelectorAll('.br-island');
+                for (var n = 0; n < nodes.length; n++) {
+                    (function (node) {
+                        node.addEventListener('pointerdown', function (e) { e.preventDefault(); onIsland(parseInt(node.getAttribute('data-i'), 10)); });
+                    })(nodes[n]);
+                }
+            }
+
+            // --- interaction ---
+            function cycleBridge(a, b) {
+                var k = key(a, b), cur = pb[k] || 0;
+                if (cur === 0) { if (crosses(a, b)) { setStatus('That bridge would cross another.', false); return; } pb[k] = 1; }
+                else if (cur === 1) pb[k] = 2;
+                else delete pb[k];
+            }
+            function onIsland(i) {
+                if (solved) return;
+                if (sel === null) { sel = i; render(); return; }
+                if (sel === i) { sel = null; render(); return; }
+                if (clearLine(sel, i)) { cycleBridge(sel, i); sel = null; render(); checkWin(); }
+                else { sel = i; render(); }
+            }
+
+            // --- win check ---
+            function connected() {
+                if (!islands.length) return false;
+                var adj = islands.map(function () { return []; });
+                for (var k in pb) { if (!pb[k]) continue; var p = parsePair(k); adj[p[0]].push(p[1]); adj[p[1]].push(p[0]); }
+                var seen = { 0: true }, stack = [0], cnt = 1;
+                while (stack.length) { var u = stack.pop(); for (var j = 0; j < adj[u].length; j++) { var v = adj[u][j]; if (!seen[v]) { seen[v] = true; cnt++; stack.push(v); } } }
+                return cnt === islands.length;
+            }
+            function checkWin() {
+                var sums = islandSums();
+                for (var i = 0; i < islands.length; i++) if (sums[i] !== clue[i]) return;
+                if (!connected()) return;
+                win();
+            }
+            function win() {
+                solved = true; sel = null; pauseTimer();
+                var prev = parseInt(localStorage.getItem(bestKey()) || '0', 10);
+                var isBest = prev === 0 || elapsed < prev;
+                if (isBest) localStorage.setItem(bestKey(), String(elapsed));
+                updateBestDisplay();
+                setStatus('Fat Ott is pleased — solved in ' + fmtTime(elapsed) + (isBest ? ' (new best!)' : ''), true);
+                render();
+                ensureAudio(); blip(523, 0.14, 'triangle'); setTimeout(function () { blip(784, 0.22, 'triangle'); }, 130);
+                var box = board.getBoundingClientRect();
+                for (var i = 0; i < 6; i++) {
+                    (function (kk) { setTimeout(function () { popAt(box.left + Math.random() * box.width, box.top + Math.random() * box.height, '✨'); }, kk * 70); })(i);
+                }
+            }
+
+            function instr() { return 'Connect the islands so each touches exactly its number of bridges, all joined into one network. Tap an island, then another in line with it.'; }
+            function setStatus(m, w) { statusEl.textContent = m; statusEl.classList.toggle('win', !!w); }
+
+            function hint() {
+                if (solved) return;
+                for (var k in sol) {
+                    var need = sol[k], cur = pb[k] || 0;
+                    if (cur < need) { var p = parsePair(k); if (cur === 0 && crosses(p[0], p[1])) continue; pb[k] = cur + 1; render(); checkWin(); return; }
+                }
+                setStatus('No hint available right now.', false);
+            }
+            function restart() { pb = {}; sel = null; solved = false; render(); setStatus(instr(), false); startTimer(); }
+            function newPuzzle() {
+                generate(diffSel.value);
+                pb = {}; sel = null; solved = false;
+                render(); setStatus(instr(), false); updateBestDisplay(); startTimer();
+            }
+
+            diffSel.addEventListener('change', newPuzzle);
+            document.getElementById('br-new').addEventListener('click', newPuzzle);
+            document.getElementById('br-restart').addEventListener('click', restart);
+            document.getElementById('br-hint').addEventListener('click', hint);
+
+            return { newPuzzle: newPuzzle, pause: pauseTimer, resume: resumeTimer, get puzzle() { return islands.length ? islands : null; } };
         })();
     })();
     </script>
