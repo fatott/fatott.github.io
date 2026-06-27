@@ -257,6 +257,7 @@
             cursor: pointer;
         }
         .fk-controls button:hover, .fk-controls select:hover { border-color: var(--ember); color: var(--ember); }
+        .fk-controls button.daily-active { color: var(--ember); border-color: var(--ember); }
 
         .fk-timer { font-family: 'MedievalSharp', cursive; color: var(--ash); font-size: .95rem; letter-spacing: .05em; }
         .fk-timer span { color: var(--ember); }
@@ -332,6 +333,70 @@
         .br-island text { fill: var(--ember); font-family: 'MedievalSharp', cursive; text-anchor: middle; dominant-baseline: central; pointer-events: none; }
 
         @media (prefers-reduced-motion: reduce) { .glow { animation: none; opacity: .9; } }
+
+        /* Nonogram ---------------------------------------------------- */
+        #nonogram-view { display: none; flex-direction: column; align-items: center; gap: 1rem; }
+        body[data-view="nonogram"] #nonogram-view { display: flex; }
+        body[data-view="nonogram"] { justify-content: flex-start; overflow-y: auto; padding: 1.4rem 0 2rem; }
+
+        .nono-clue-col {
+            display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+            padding-bottom: 4px; box-sizing: border-box;
+        }
+        .nono-clue-row {
+            display: flex; flex-direction: row; align-items: center; justify-content: flex-end;
+            padding-right: 5px; gap: 3px; box-sizing: border-box;
+        }
+        .nono-num {
+            font-family: 'MedievalSharp', cursive;
+            color: var(--ash);
+            font-size: 0.82rem;
+            line-height: 1.2;
+        }
+        .nono-num.done { opacity: 0.3; }
+        .nono-cell {
+            background: #0d1413;
+            border: 1px solid rgba(138,154,154,.35);
+            border-radius: 3px;
+            cursor: pointer;
+            user-select: none;
+            display: flex; align-items: center; justify-content: center;
+            box-sizing: border-box;
+            transition: background .08s;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .nono-cell.filled { background: var(--ember); border-color: var(--ember); }
+        .nono-cell.crossed { color: var(--ash); opacity: 0.45;
+            font-family: Georgia, serif; font-size: 0.8rem; }
+        #no-grid.solved .nono-cell.filled { box-shadow: 0 0 7px rgba(255,120,30,.35); }
+
+        /* Battleships ------------------------------------------------- */
+        #battleships-view { display: none; flex-direction: column; align-items: center; gap: 1rem; }
+        body[data-view="battleships"] #battleships-view { display: flex; }
+        body[data-view="battleships"] { justify-content: flex-start; overflow-y: auto; padding: 1.4rem 0 2rem; }
+
+        .bs-cell {
+            background: #0d1413;
+            border: 1px solid rgba(138,154,154,.35);
+            border-radius: 3px;
+            cursor: pointer;
+            user-select: none;
+            display: flex; align-items: center; justify-content: center;
+            box-sizing: border-box;
+            transition: background .08s;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .bs-cell.ship { background: var(--ember); border-color: var(--ember); }
+        .bs-cell.water { color: var(--ash); opacity: .45; font-family: Georgia, serif; font-size: .75rem; }
+        .bs-cell.hint { cursor: default; }
+        .bs-cell.hint.ship { background: rgba(255,120,30,.55); border-color: var(--ember); }
+        .bs-cell.hint.water { color: var(--ash); opacity: .5; font-family: Georgia, serif; font-size: .7rem; }
+        #bs-grid.solved .bs-cell.ship { box-shadow: 0 0 7px rgba(255,120,30,.35); }
+
+        .bs-fleet { display: flex; flex-wrap: wrap; gap: 7px; justify-content: center; align-items: flex-end; }
+        .bs-fleet-ship { display: flex; gap: 2px; }
+        .bs-fleet-seg { width: 13px; height: 13px; background: var(--ember); border-radius: 2px; transition: background .2s, opacity .2s; }
+        .bs-fleet-ship.found .bs-fleet-seg { background: var(--ash); opacity: .3; }
     </style>
 </head>
 <body data-view="home">
@@ -344,6 +409,8 @@
         <button class="tab" data-view="arcade">Feed Fat Ott</button>
         <button class="tab" data-view="futoshiki">Futoshiki</button>
         <button class="tab" data-view="bridges">Bridges</button>
+        <button class="tab" data-view="nonogram">Nonogram</button>
+        <button class="tab" data-view="battleships">Battleships</button>
     </nav>
 
     <div class="pumpkin-wrap">
@@ -378,6 +445,7 @@
                 <option value="easy">Easy</option>
                 <option value="hard">Hard</option>
             </select>
+            <button id="fk-daily">Daily</button>
             <button id="fk-new">New puzzle</button>
             <button id="fk-restart">Restart</button>
             <button id="fk-hint">Hint</button>
@@ -386,6 +454,9 @@
         <div id="fk-grid" class="fk-grid"></div>
         <div class="fk-pad" id="fk-pad"></div>
         <div class="fk-status" id="fk-status">Fill every row &amp; column with 1&ndash;5, no repeats. A sign&rsquo;s open side faces the larger number.</div>
+        <div id="fk-share" style="display:none; margin-top:.5rem; text-align:center;">
+            <button class="btn" id="fk-share-btn" style="font-size:.85rem; padding:.4rem 1.1rem;">Copy result</button>
+        </div>
     </section>
 
     <!-- Bridges -->
@@ -395,6 +466,7 @@
                 <option value="easy">Easy</option>
                 <option value="hard">Hard</option>
             </select>
+            <button id="br-daily">Daily</button>
             <button id="br-new">New puzzle</button>
             <button id="br-restart">Restart</button>
             <button id="br-hint">Hint</button>
@@ -402,15 +474,81 @@
         <div class="fk-timer"><span id="br-time">0:00</span> &middot; best <span id="br-best">&mdash;</span></div>
         <div id="br-board"></div>
         <div class="fk-status" id="br-status">Connect the islands so each has exactly its number of bridges, all joined into one network. Tap an island, then another in line with it.</div>
+        <div id="br-share" style="display:none; margin-top:.5rem; text-align:center;">
+            <button class="btn" id="br-share-btn" style="font-size:.85rem; padding:.4rem 1.1rem;">Copy result</button>
+        </div>
+    </section>
+
+    <!-- Battleships -->
+    <section id="battleships-view">
+        <div class="fk-controls">
+            <select id="bs-diff" aria-label="Difficulty">
+                <option value="easy">Easy (7&times;7)</option>
+                <option value="hard">Hard (10&times;10)</option>
+            </select>
+            <button id="bs-daily">Daily</button>
+            <button id="bs-new">New puzzle</button>
+            <button id="bs-restart">Restart</button>
+        </div>
+        <div class="fk-timer"><span id="bs-time">0:00</span> &middot; best <span id="bs-best">&mdash;</span></div>
+        <div id="bs-fleet"></div>
+        <div id="bs-grid"></div>
+        <div class="fk-status" id="bs-status">Place ships to match the row and column totals. Tap to mark ship &middot; tap again for water &middot; once more to clear. Ships cannot touch, even diagonally.</div>
+        <div id="bs-share" style="display:none; margin-top:.5rem; text-align:center;">
+            <button class="btn" id="bs-share-btn" style="font-size:.85rem; padding:.4rem 1.1rem;">Copy result</button>
+        </div>
+    </section>
+
+    <!-- Nonogram -->
+    <section id="nonogram-view">
+        <div class="fk-controls">
+            <select id="no-diff" aria-label="Difficulty">
+                <option value="easy">Easy (5&times;5)</option>
+                <option value="hard">Hard (10&times;10)</option>
+            </select>
+            <button id="no-daily">Daily</button>
+            <button id="no-new">New puzzle</button>
+            <button id="no-restart">Restart</button>
+        </div>
+        <div class="fk-timer"><span id="no-time">0:00</span> &middot; best <span id="no-best">&mdash;</span></div>
+        <div id="no-grid"></div>
+        <div class="fk-status" id="no-status">Tap to fill &middot; tap again to cross out &middot; once more to clear. Row and column numbers show run lengths.</div>
+        <div id="no-share" style="display:none; margin-top:.5rem; text-align:center;">
+            <button class="btn" id="no-share-btn" style="font-size:.85rem; padding:.4rem 1.1rem;">Copy result</button>
+        </div>
     </section>
 
     <script>
     (function () {
         'use strict';
 
-        function shuffle(a) {
+        function mulberry32(seed) {
+            return function () {
+                seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+                var t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+                t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+                return ((t ^ t >>> 14) >>> 0) / 4294967296;
+            };
+        }
+        function dailyDateStr() {
+            var d = new Date();
+            return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
+        }
+        function dailyLabel() {
+            var d = new Date();
+            var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+            return months[d.getMonth()] + ' ' + d.getDate();
+        }
+        // game 0=FK, 1=BR; diff 0=easy, 1=hard — unique seed per game/diff/day
+        function makeDailySeed(game, diff) {
+            var d = new Date();
+            return (d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate()) * 10 + game * 2 + diff;
+        }
+
+        function shuffle(a, rng) {
+            var rand = rng || Math.random;
             for (var i = a.length - 1; i > 0; i--) {
-                var j = Math.floor(Math.random() * (i + 1));
+                var j = Math.floor(rand() * (i + 1));
                 var t = a[i]; a[i] = a[j]; a[j] = t;
             }
             return a;
@@ -426,11 +564,15 @@
             if (prev === 'arcade' && name !== 'arcade') stopArcade();
             if (prev === 'futoshiki' && name !== 'futoshiki') FK.pause();
             if (prev === 'bridges' && name !== 'bridges') BR.pause();
+            if (prev === 'nonogram' && name !== 'nonogram') NO.pause();
+            if (prev === 'battleships' && name !== 'battleships') BS.pause();
             document.body.dataset.view = name;
             tabs.forEach(function (t) { t.classList.toggle('active', t.dataset.view === name); });
             if (name === 'arcade') resetArcadePanels();
             if (name === 'futoshiki') { if (!FK.puzzle) FK.newPuzzle(); else FK.resume(); }
             if (name === 'bridges') { if (!BR.puzzle) BR.newPuzzle(); else BR.resume(); }
+            if (name === 'nonogram') { if (!NO.puzzle) NO.newPuzzle(); else NO.resume(); }
+            if (name === 'battleships') { if (!BS.puzzle) BS.newPuzzle(); else BS.resume(); }
         }
         tabs.forEach(function (t) { t.addEventListener('click', function () { showView(t.dataset.view); }); });
 
@@ -690,7 +832,7 @@
                 return capped ? 2 : count;
             }
 
-            function generateSolution() {
+            function generateSolution(rng) {
                 // Build a cyclic Latin square, then permute rows, columns, and
                 // symbol labels — a valid random solution with no backtracking
                 // (keeps generation instant at any N).
@@ -698,7 +840,7 @@
                 for (var r = 0; r < N; r++) { base.push([]); for (var c = 0; c < N; c++) base[r].push(((r + c) % N) + 1); }
                 var rowOrder = [], colOrder = [], sym = [];
                 for (var k = 0; k < N; k++) { rowOrder.push(k); colOrder.push(k); sym.push(k + 1); }
-                shuffle(rowOrder); shuffle(colOrder); shuffle(sym);
+                shuffle(rowOrder, rng); shuffle(colOrder, rng); shuffle(sym, rng);
                 var out = [];
                 for (var i = 0; i < N; i++) {
                     out.push([]);
@@ -707,10 +849,43 @@
                 return out;
             }
 
-            function newPuzzle() {
+            var isDaily = false;
+            var fkShareDiv = document.getElementById('fk-share');
+            var fkShareBtn = document.getElementById('fk-share-btn');
+
+            function showFkShare(text) {
+                fkShareDiv.style.display = '';
+                fkShareBtn.textContent = 'Copy result';
+                fkShareBtn.onclick = function () {
+                    navigator.clipboard.writeText(text).then(function () {
+                        fkShareBtn.textContent = 'Copied!';
+                        setTimeout(function () { fkShareBtn.textContent = 'Copy result'; }, 1500);
+                    });
+                };
+            }
+            function hideFkShare() { fkShareDiv.style.display = 'none'; }
+
+            function fkShareText() {
+                var diff = diffSel.value;
+                var lines = ['Fat Ott Futoshiki — ' + dailyLabel() + ' 🎃',
+                             diff.charAt(0).toUpperCase() + diff.slice(1)];
+                for (var row = 0; row < N; row++) {
+                    var line = '';
+                    for (var col = 0; col < N; col++) line += givenGrid[row][col] !== 0 ? '⬛' : '🟧';
+                    lines.push(line);
+                }
+                lines.push('⏱ ' + fmtTime(elapsed));
+                lines.push('fatott.com');
+                return lines.join('\n');
+            }
+
+            function newPuzzle(rng) {
+                isDaily = false;
+                hideFkShare();
+                document.getElementById('fk-daily').classList.remove('daily-active');
                 var diff = diffSel.value;
                 buildPad();
-                solution = generateSolution();
+                solution = generateSolution(rng);
                 hSign = blank2d(N, N - 1, null);
                 vSign = blank2d(N - 1, N, null);
 
@@ -720,7 +895,7 @@
                 var r, c;
                 for (r = 0; r < N; r++) for (c = 0; c < N - 1; c++) pairs.push({ t: 'H', r: r, c: c });
                 for (r = 0; r < N - 1; r++) for (c = 0; c < N; c++) pairs.push({ t: 'V', r: r, c: c });
-                shuffle(pairs);
+                shuffle(pairs, rng);
                 var K = Math.round(pairs.length * (diff === 'hard' ? 0.16 : 0.28));
                 for (var p = 0; p < K; p++) {
                     var pr = pairs[p];
@@ -735,7 +910,7 @@
                 var floor = Math.ceil(N * N * (diff === 'hard' ? 0.20 : 0.34));
                 var keys = [];
                 for (r = 0; r < N; r++) for (c = 0; c < N; c++) keys.push([r, c]);
-                shuffle(keys);
+                shuffle(keys, rng);
                 var givenCount = N * N;
                 for (var i = 0; i < keys.length; i++) {
                     var kr = keys[i][0], kc = keys[i][1], saved = givenGrid[kr][kc];
@@ -754,6 +929,26 @@
                 setStatus(instructions(), false);
                 updateBestDisplay();
                 startTimer();
+            }
+
+            function newDailyPuzzle() {
+                var diff = diffSel.value;
+                var rng = mulberry32(makeDailySeed(0, diff === 'hard' ? 1 : 0));
+                isDaily = true;
+                document.getElementById('fk-daily').classList.add('daily-active');
+                var dkey = 'fatott_fk_daily_' + diff + '_' + dailyDateStr();
+                var priorElapsed = parseInt(localStorage.getItem(dkey) || '0', 10);
+                newPuzzle(rng);
+                isDaily = true; // newPuzzle resets it; restore
+                document.getElementById('fk-daily').classList.add('daily-active');
+                if (priorElapsed > 0) {
+                    userGrid = solution.map(function (row) { return row.slice(); });
+                    solved = true; selected = null;
+                    elapsed = priorElapsed; pauseTimer(); showTime();
+                    grid.classList.add('solved'); paint();
+                    setStatus('Fat Ott is pleased — solved in ' + fmtTime(priorElapsed), true);
+                    showFkShare(fkShareText());
+                }
             }
 
             function signChar(t, rel) {
@@ -887,6 +1082,11 @@
                 updateBestDisplay();
                 grid.classList.add('solved');
                 setStatus('Fat Ott is pleased — solved in ' + fmtTime(elapsed) + (isBest ? ' (new best!)' : ''), true);
+                if (isDaily) {
+                    var dkey = 'fatott_fk_daily_' + diffSel.value + '_' + dailyDateStr();
+                    localStorage.setItem(dkey, String(elapsed));
+                    showFkShare(fkShareText());
+                }
                 ensureAudio();
                 blip(523, 0.14, 'triangle');
                 setTimeout(function () { blip(784, 0.22, 'triangle'); }, 130);
@@ -945,6 +1145,7 @@
             }
 
             diffSel.addEventListener('change', newPuzzle);
+            document.getElementById('fk-daily').addEventListener('click', newDailyPuzzle);
             document.getElementById('fk-new').addEventListener('click', newPuzzle);
             document.getElementById('fk-restart').addEventListener('click', restart);
             document.getElementById('fk-hint').addEventListener('click', hint);
@@ -965,7 +1166,7 @@
                 else if (e.key === 'ArrowRight') { moveSelection(0, 1); e.preventDefault(); }
             });
 
-            return { newPuzzle: newPuzzle, pause: pauseTimer, resume: resumeTimer, get puzzle() { return solution; } };
+            return { newPuzzle: newPuzzle, newDailyPuzzle: newDailyPuzzle, pause: pauseTimer, resume: resumeTimer, get puzzle() { return solution; } };
         })();
 
         /* =========================================================
@@ -984,13 +1185,36 @@
             var pb = {};                          // player's bridges: "i-j" -> 1|2
             var sel = null;                       // selected island index
             var solved = false;
+            var isDaily = false;
+            var _rng = Math.random;
 
             var elapsed = 0, timerInt = null, running = false;
             var brTimeEl = document.getElementById('br-time');
             var brBestEl = document.getElementById('br-best');
 
+            var brShareDiv = document.getElementById('br-share');
+            var brShareBtn = document.getElementById('br-share-btn');
+            function showBrShare(text) {
+                brShareDiv.style.display = '';
+                brShareBtn.textContent = 'Copy result';
+                brShareBtn.onclick = function () {
+                    navigator.clipboard.writeText(text).then(function () {
+                        brShareBtn.textContent = 'Copied!';
+                        setTimeout(function () { brShareBtn.textContent = 'Copy result'; }, 1500);
+                    });
+                };
+            }
+            function hideBrShare() { brShareDiv.style.display = 'none'; }
+            function brShareText() {
+                var diff = diffSel.value;
+                return 'Fat Ott Bridges — ' + dailyLabel() + ' 🎃\n' +
+                       G + '\xD7' + G + ' \xB7 ' + diff.charAt(0).toUpperCase() + diff.slice(1) + '\n' +
+                       '⏱ ' + fmtTime(elapsed) + '\n' +
+                       'fatott.com';
+            }
+
             var DIRS = [[-1, 0], [1, 0], [0, -1], [0, 1]];
-            function randInt(n) { return Math.floor(Math.random() * n); }
+            function randInt(n) { return Math.floor(_rng() * n); }
             function key(a, b) { return a < b ? a + '-' + b : b + '-' + a; }
             function parsePair(k) { var p = k.split('-'); return [parseInt(p[0], 10), parseInt(p[1], 10)]; }
 
@@ -1045,7 +1269,8 @@
             }
 
             // --- generation: grow a connected island network, then enrich it ---
-            function generate(diff) {
+            function generate(diff, rng) {
+                _rng = rng || Math.random;
                 G = diff === 'hard' ? 9 : 7;
                 var targetN = diff === 'hard' ? 13 : 8;
                 var maxReach = 4;
@@ -1069,7 +1294,7 @@
                         var bIdx = isl.length; isl.push({ r: nr, c: nc }); occ[nr][nc] = 'I';
                         var o = dir[0] !== 0 ? 'V' : 'H';
                         for (var k2 = 0; k2 < cells.length; k2++) occ[cells[k2][0]][cells[k2][1]] = o;
-                        br[key(aIdx, bIdx)] = Math.random() < 0.45 ? 2 : 1;   // ~45% double bridges
+                        br[key(aIdx, bIdx)] = _rng() < 0.45 ? 2 : 1;   // ~45% double bridges
                     }
                     if (!best || isl.length > best.isl.length) best = { isl: isl, br: br };
                     if (isl.length >= targetN) break;
@@ -1095,14 +1320,14 @@
                     }
                 }
                 for (var ci = 0; ci < cands.length; ci++) {
-                    if (Math.random() > p) continue;
+                    if (_rng() > p) continue;
                     var a = cands[ci][0], b = cands[ci][1], k = key(a, b), cur = sol[k] || 0;
                     if (cur >= 2) continue;
                     if (cur === 0) {
                         var o = orient(a, b), cells = pathCells(a, b), occMap = occupancy(sol, null), blocked = false;
                         for (var x = 0; x < cells.length; x++) if (occMap[cells[x][0] + ',' + cells[x][1]]) { blocked = true; break; }
                         if (!blocked) sol[k] = 1;
-                    } else if (Math.random() < 0.5) { sol[k] = 2; }
+                    } else if (_rng() < 0.5) { sol[k] = 2; }
                 }
             }
 
@@ -1179,6 +1404,11 @@
                 if (isBest) localStorage.setItem(bestKey(), String(elapsed));
                 updateBestDisplay();
                 setStatus('Fat Ott is pleased — solved in ' + fmtTime(elapsed) + (isBest ? ' (new best!)' : ''), true);
+                if (isDaily) {
+                    var dkey = 'fatott_br_daily_' + diffSel.value + '_' + dailyDateStr();
+                    localStorage.setItem(dkey, String(elapsed));
+                    showBrShare(brShareText());
+                }
                 render();
                 ensureAudio(); blip(523, 0.14, 'triangle'); setTimeout(function () { blip(784, 0.22, 'triangle'); }, 130);
                 var box = board.getBoundingClientRect();
@@ -1200,18 +1430,656 @@
             }
             function restart() { pb = {}; sel = null; solved = false; render(); setStatus(instr(), false); startTimer(); }
             function newPuzzle() {
+                isDaily = false; hideBrShare();
+                document.getElementById('br-daily').classList.remove('daily-active');
                 generate(diffSel.value);
                 pb = {}; sel = null; solved = false;
                 render(); setStatus(instr(), false); updateBestDisplay(); startTimer();
             }
+            function newDailyPuzzle() {
+                var diff = diffSel.value;
+                var rng = mulberry32(makeDailySeed(1, diff === 'hard' ? 1 : 0));
+                isDaily = true;
+                document.getElementById('br-daily').classList.add('daily-active');
+                hideBrShare();
+                var dkey = 'fatott_br_daily_' + diff + '_' + dailyDateStr();
+                var priorElapsed = parseInt(localStorage.getItem(dkey) || '0', 10);
+                generate(diff, rng);
+                pb = {}; sel = null; solved = false;
+                render(); setStatus(instr(), false); updateBestDisplay(); startTimer();
+                if (priorElapsed > 0) {
+                    for (var k in sol) pb[k] = sol[k];
+                    solved = true; sel = null;
+                    elapsed = priorElapsed; pauseTimer(); showTime();
+                    render();
+                    setStatus('Fat Ott is pleased — solved in ' + fmtTime(priorElapsed), true);
+                    showBrShare(brShareText());
+                }
+            }
 
             diffSel.addEventListener('change', newPuzzle);
+            document.getElementById('br-daily').addEventListener('click', newDailyPuzzle);
             document.getElementById('br-new').addEventListener('click', newPuzzle);
             document.getElementById('br-restart').addEventListener('click', restart);
             document.getElementById('br-hint').addEventListener('click', hint);
 
-            return { newPuzzle: newPuzzle, pause: pauseTimer, resume: resumeTimer, get puzzle() { return islands.length ? islands : null; } };
+            return { newPuzzle: newPuzzle, newDailyPuzzle: newDailyPuzzle, pause: pauseTimer, resume: resumeTimer, get puzzle() { return islands.length ? islands : null; } };
         })();
+        /* =========================================================
+           Battleships (Bimaru)
+        ========================================================= */
+        var BS = (function () {
+            var N = 7;
+            var FLEET = {
+                easy: [{size:3,count:1},{size:2,count:2},{size:1,count:3}],
+                hard: [{size:4,count:1},{size:3,count:2},{size:2,count:3},{size:1,count:4}]
+            };
+            var solution=null, hintGrid=null, playerGrid=null;
+            var rowClues=null, colClues=null;
+            var curFleet=null, ships=null;
+            var solved=false, isDaily=false;
+            var elapsed=0, timerInt=null, running=false;
+
+            var container = document.getElementById('bs-grid');
+            var statusEl  = document.getElementById('bs-status');
+            var diffSel   = document.getElementById('bs-diff');
+            var timeEl    = document.getElementById('bs-time');
+            var bestEl    = document.getElementById('bs-best');
+            var shareDiv  = document.getElementById('bs-share');
+            var shareBtn  = document.getElementById('bs-share-btn');
+            var fleetEl   = document.getElementById('bs-fleet');
+
+            function fmtTime(s) { return Math.floor(s/60)+':'+(('0'+(s%60)).slice(-2)); }
+            function showTime() { timeEl.textContent = fmtTime(elapsed); }
+            function startTimer() { elapsed=0; showTime(); clearInterval(timerInt); running=true; timerInt=setInterval(function(){elapsed++;showTime();},1000); }
+            function pauseTimer() { clearInterval(timerInt); running=false; }
+            function resumeTimer() { if(solved||!solution||running)return; running=true; timerInt=setInterval(function(){elapsed++;showTime();},1000); }
+            function bestKey() { return 'fatott_bs_best_'+diffSel.value; }
+            function updateBestDisplay() { var b=parseInt(localStorage.getItem(bestKey())||'0',10); bestEl.textContent=b>0?fmtTime(b):'—'; }
+            function setStatus(m,w) { statusEl.textContent=m; statusEl.classList.toggle('win',!!w); }
+
+            function makeGrid(v) { var g=[]; for(var r=0;r<N;r++){g.push([]);for(var c=0;c<N;c++)g[r].push(v||0);} return g; }
+
+            function canPlace(g, r, c, sz, horiz) {
+                for (var i=0; i<sz; i++) {
+                    var tr=horiz?r:r+i, tc=horiz?c+i:c;
+                    if(tr<0||tr>=N||tc<0||tc>=N) return false;
+                    for(var dr=-1;dr<=1;dr++) for(var dc=-1;dc<=1;dc++) {
+                        var nr=tr+dr,nc=tc+dc;
+                        if(nr>=0&&nr<N&&nc>=0&&nc<N&&g[nr][nc]) return false;
+                    }
+                }
+                return true;
+            }
+
+            function generate(diff, rng) {
+                N = diff==='hard' ? 10 : 7;
+                var rand = rng||Math.random;
+                curFleet = FLEET[diff];
+                var szList=[];
+                curFleet.forEach(function(f){for(var i=0;i<f.count;i++)szList.push(f.size);});
+                szList.sort(function(a,b){return b-a;});
+
+                solution=null; ships=null;
+                for(var att=0; att<400&&!solution; att++) {
+                    var g=makeGrid(0), pl=[], ok=true;
+                    for(var si=0; si<szList.length&&ok; si++) {
+                        var sz=szList[si], found=false;
+                        for(var t=0; t<300&&!found; t++) {
+                            var horiz=(sz===1)?(rand()<0.5):(rand()<0.5);
+                            var maxR=horiz?N-1:N-sz, maxC=horiz?N-sz:N-1;
+                            var r=Math.floor(rand()*(maxR+1)), c=Math.floor(rand()*(maxC+1));
+                            if(canPlace(g,r,c,sz,horiz)) {
+                                for(var i=0;i<sz;i++){if(horiz)g[r][c+i]=1;else g[r+i][c]=1;}
+                                pl.push({r:r,c:c,size:sz,horiz:horiz});
+                                found=true;
+                            }
+                        }
+                        if(!found) ok=false;
+                    }
+                    if(ok){solution=g; ships=pl;}
+                }
+                if(!solution){solution=makeGrid(0); ships=[];}
+
+                rowClues=[]; colClues=[];
+                for(var r=0;r<N;r++){var s=0;for(var c=0;c<N;c++)s+=solution[r][c];rowClues.push(s);}
+                for(var c=0;c<N;c++){var s=0;for(var r=0;r<N;r++)s+=solution[r][c];colClues.push(s);}
+
+                // Hints: middle cell of each ship with size >= 2, up to numHints
+                hintGrid=makeGrid(0);
+                var numHints=diff==='hard'?3:2, nh=0;
+                for(var si=0; si<ships.length&&nh<numHints; si++) {
+                    var ship=ships[si];
+                    if(ship.size>=2) {
+                        var mid=Math.floor(ship.size/2);
+                        var hr=ship.horiz?ship.r:ship.r+mid;
+                        var hc=ship.horiz?ship.c+mid:ship.c;
+                        hintGrid[hr][hc]=1; nh++;
+                    }
+                }
+            }
+
+            // Find valid ships in player grid for fleet display
+            function getFoundShips() {
+                var vis=makeGrid(0), found={};
+                for(var r=0;r<N;r++) for(var c=0;c<N;c++) {
+                    if(playerGrid[r][c]===1&&!vis[r][c]) {
+                        var comp=[[r,c]]; vis[r][c]=1; var qi=0;
+                        while(qi<comp.length) {
+                            var cr=comp[qi][0],cc=comp[qi][1]; qi++;
+                            [[0,1],[0,-1],[1,0],[-1,0]].forEach(function(d){
+                                var nr=cr+d[0],nc=cc+d[1];
+                                if(nr>=0&&nr<N&&nc>=0&&nc<N&&playerGrid[nr][nc]===1&&!vis[nr][nc]){vis[nr][nc]=1;comp.push([nr,nc]);}
+                            });
+                        }
+                        var sz=comp.length;
+                        var aR=comp.every(function(x){return x[0]===comp[0][0];});
+                        var aC=comp.every(function(x){return x[1]===comp[0][1];});
+                        if((aR||aC)&&sz>=1&&sz<=4) found[sz]=(found[sz]||0)+1;
+                    }
+                }
+                return found;
+            }
+
+            function renderFleet() {
+                if(!curFleet) return;
+                var found=getFoundShips();
+                fleetEl.innerHTML='';
+                curFleet.forEach(function(f) {
+                    var fc=Math.min(found[f.size]||0, f.count);
+                    for(var i=0;i<f.count;i++) {
+                        var shipDiv=document.createElement('div');
+                        shipDiv.className='bs-fleet-ship'+(i<fc?' found':'');
+                        for(var j=0;j<f.size;j++) {
+                            var seg=document.createElement('div'); seg.className='bs-fleet-seg'; shipDiv.appendChild(seg);
+                        }
+                        fleetEl.appendChild(shipDiv);
+                    }
+                });
+            }
+
+            function render() {
+                container.innerHTML=''; container.classList.remove('solved');
+                var vw=window.innerWidth||400;
+                var cellSz=N===10?Math.max(22,Math.min(28,Math.floor((vw*0.9-46)/N))):Math.max(34,Math.min(44,Math.floor((vw*0.85-50)/N)));
+                var clueSz=Math.max(26,Math.round(cellSz*0.85));
+
+                container.style.display='grid';
+                container.style.gridTemplateColumns=clueSz+'px '+Array(N).fill(cellSz+'px').join(' ');
+                container.style.gap='2px';
+
+                // Corner
+                var corner=document.createElement('div');
+                corner.style.cssText='width:'+clueSz+'px;height:'+clueSz+'px;';
+                container.appendChild(corner);
+
+                // Column clues
+                for(var c=0;c<N;c++) {
+                    var cdiv=document.createElement('div');
+                    cdiv.className='nono-clue-col'; cdiv.dataset.bsCol=c;
+                    cdiv.style.cssText='width:'+cellSz+'px;height:'+clueSz+'px;';
+                    var sp=document.createElement('span');
+                    sp.className='nono-num'+(colClues[c]===0?' done':'');
+                    sp.textContent=colClues[c]; cdiv.appendChild(sp);
+                    container.appendChild(cdiv);
+                }
+
+                // Rows
+                for(var r=0;r<N;r++) {
+                    var rdiv=document.createElement('div');
+                    rdiv.className='nono-clue-row'; rdiv.dataset.bsRow=r;
+                    rdiv.style.cssText='width:'+clueSz+'px;height:'+cellSz+'px;';
+                    var sp=document.createElement('span');
+                    sp.className='nono-num'+(rowClues[r]===0?' done':'');
+                    sp.textContent=rowClues[r]; rdiv.appendChild(sp);
+                    container.appendChild(rdiv);
+
+                    for(var c=0;c<N;c++) {
+                        var cell=document.createElement('div');
+                        var h=hintGrid[r][c], p=playerGrid[r][c];
+                        cell.className='bs-cell'+(h?' hint':'')+(p===1?' ship':p===2?' water':'');
+                        if(p===2) cell.textContent='\xD7';
+                        cell.style.cssText='width:'+cellSz+'px;height:'+cellSz+'px;';
+                        if(!h)(function(rr,cc){
+                            cell.addEventListener('pointerdown',function(e){e.preventDefault();onCell(rr,cc);});
+                        })(r,c);
+                        container.appendChild(cell);
+                    }
+                }
+                updateHighlights();
+                renderFleet();
+            }
+
+            function lineSum(isRow, idx) {
+                var s=0;
+                for(var i=0;i<N;i++) s+=isRow?((playerGrid[idx][i]===1)?1:0):((playerGrid[i][idx]===1)?1:0);
+                return s;
+            }
+
+            function updateHighlights() {
+                for(var r=0;r<N;r++) {
+                    var rd=container.querySelector('[data-bs-row="'+r+'"]');
+                    if(rd) rd.querySelector('.nono-num').classList.toggle('done', lineSum(true,r)===rowClues[r]);
+                }
+                for(var c=0;c<N;c++) {
+                    var cd=container.querySelector('[data-bs-col="'+c+'"]');
+                    if(cd) cd.querySelector('.nono-num').classList.toggle('done', lineSum(false,c)===colClues[c]);
+                }
+            }
+
+            function onCell(r, c) {
+                if(solved) return;
+                playerGrid[r][c]=playerGrid[r][c]===0?1:playerGrid[r][c]===1?2:0;
+                var cells=container.querySelectorAll('.bs-cell');
+                var cell=cells[r*N+c];
+                cell.className='bs-cell'+(hintGrid[r][c]?' hint':'');
+                cell.textContent='';
+                if(playerGrid[r][c]===1) cell.classList.add('ship');
+                if(playerGrid[r][c]===2){cell.classList.add('water');cell.textContent='\xD7';}
+                updateHighlights();
+                renderFleet();
+                checkWin();
+            }
+
+            function validateFleet() {
+                var vis=makeGrid(0), foundCounts={};
+                for(var r=0;r<N;r++) for(var c=0;c<N;c++) {
+                    if(playerGrid[r][c]===1&&!vis[r][c]) {
+                        var comp=[[r,c]]; vis[r][c]=1; var qi=0;
+                        while(qi<comp.length){
+                            var cr=comp[qi][0],cc=comp[qi][1]; qi++;
+                            [[0,1],[0,-1],[1,0],[-1,0]].forEach(function(d){
+                                var nr=cr+d[0],nc=cc+d[1];
+                                if(nr>=0&&nr<N&&nc>=0&&nc<N&&playerGrid[nr][nc]===1&&!vis[nr][nc]){vis[nr][nc]=1;comp.push([nr,nc]);}
+                            });
+                        }
+                        var sz=comp.length;
+                        if(sz>4) return false;
+                        var aR=comp.every(function(x){return x[0]===comp[0][0];});
+                        var aC=comp.every(function(x){return x[1]===comp[0][1];});
+                        if(!aR&&!aC) return false;
+                        foundCounts[sz]=(foundCounts[sz]||0)+1;
+                    }
+                }
+                // No diagonal adjacency between ships
+                for(var r=0;r<N;r++) for(var c=0;c<N;c++) {
+                    if(playerGrid[r][c]===1) {
+                        var diags=[[1,1],[1,-1],[-1,1],[-1,-1]];
+                        for(var di=0;di<diags.length;di++) {
+                            var nr=r+diags[di][0],nc=c+diags[di][1];
+                            if(nr>=0&&nr<N&&nc>=0&&nc<N&&playerGrid[nr][nc]===1) return false;
+                        }
+                    }
+                }
+                // Fleet composition matches
+                for(var i=0;i<curFleet.length;i++) {
+                    if((foundCounts[curFleet[i].size]||0)!==curFleet[i].count) return false;
+                }
+                return true;
+            }
+
+            function checkWin() {
+                if(solved) return;
+                for(var r=0;r<N;r++) if(lineSum(true,r)!==rowClues[r]) return;
+                for(var c=0;c<N;c++) if(lineSum(false,c)!==colClues[c]) return;
+                if(!validateFleet()) return;
+                win();
+            }
+
+            function win() {
+                solved=true; pauseTimer();
+                var prev=parseInt(localStorage.getItem(bestKey())||'0',10);
+                var isBest=prev===0||elapsed<prev;
+                if(isBest) localStorage.setItem(bestKey(),String(elapsed));
+                updateBestDisplay();
+                container.classList.add('solved');
+                setStatus('Fat Ott is pleased — all ships found in '+fmtTime(elapsed)+(isBest?' (new best!)':''),true);
+                if(isDaily){
+                    localStorage.setItem('fatott_bs_daily_'+diffSel.value+'_'+dailyDateStr(),String(elapsed));
+                    showShare(buildShareText());
+                }
+                ensureAudio(); blip(523,0.14,'triangle'); setTimeout(function(){blip(784,0.22,'triangle');},130);
+                var box=container.getBoundingClientRect();
+                for(var i=0;i<6;i++)(function(k){setTimeout(function(){popAt(box.left+Math.random()*box.width,box.top+Math.random()*box.height,'✨');},k*70);})(i);
+            }
+
+            function buildShareText() {
+                var diff=diffSel.value;
+                var lines=['Fat Ott Battleships — '+dailyLabel()+' 🎃',
+                           N+'\xD7'+N+' \xB7 '+diff.charAt(0).toUpperCase()+diff.slice(1)];
+                for(var r=0;r<N;r++){
+                    var line='';
+                    for(var c=0;c<N;c++) line+=solution[r][c]?'🟧':'⬜';
+                    lines.push(line);
+                }
+                lines.push('⏱ '+fmtTime(elapsed));
+                lines.push('fatott.com');
+                return lines.join('\n');
+            }
+
+            function showShare(text) {
+                shareDiv.style.display='';
+                shareBtn.textContent='Copy result';
+                shareBtn.onclick=function(){
+                    navigator.clipboard.writeText(text).then(function(){
+                        shareBtn.textContent='Copied!';
+                        setTimeout(function(){shareBtn.textContent='Copy result';},1500);
+                    });
+                };
+            }
+            function hideShare() { shareDiv.style.display='none'; }
+
+            function initPlayer() {
+                playerGrid=makeGrid(0);
+                for(var r=0;r<N;r++) for(var c=0;c<N;c++) {
+                    if(hintGrid[r][c]===1) playerGrid[r][c]=1;
+                    if(hintGrid[r][c]===2) playerGrid[r][c]=2;
+                }
+            }
+
+            function newPuzzle(rng) {
+                isDaily=false; hideShare();
+                document.getElementById('bs-daily').classList.remove('daily-active');
+                generate(diffSel.value, rng);
+                initPlayer(); solved=false;
+                render();
+                setStatus('Find the fleet. Tap=ship \xB7 tap again=water \xB7 once more=clear. No diagonal touching.',false);
+                updateBestDisplay(); startTimer();
+            }
+
+            function newDailyPuzzle() {
+                var diff=diffSel.value;
+                var rng=mulberry32(makeDailySeed(3, diff==='hard'?1:0));
+                isDaily=true;
+                document.getElementById('bs-daily').classList.add('daily-active');
+                hideShare();
+                var dkey='fatott_bs_daily_'+diff+'_'+dailyDateStr();
+                var priorElapsed=parseInt(localStorage.getItem(dkey)||'0',10);
+                newPuzzle(rng);
+                isDaily=true;
+                document.getElementById('bs-daily').classList.add('daily-active');
+                if(priorElapsed>0) {
+                    for(var r=0;r<N;r++) for(var c=0;c<N;c++) playerGrid[r][c]=solution[r][c]?1:0;
+                    solved=true; elapsed=priorElapsed; pauseTimer(); showTime();
+                    render(); container.classList.add('solved');
+                    setStatus('Fat Ott is pleased — all ships found in '+fmtTime(priorElapsed),true);
+                    showShare(buildShareText());
+                }
+            }
+
+            function restart() {
+                if(!solution) return;
+                initPlayer(); solved=false;
+                render();
+                setStatus('Find the fleet. Tap=ship \xB7 tap again=water \xB7 once more=clear. No diagonal touching.',false);
+                startTimer();
+            }
+
+            diffSel.addEventListener('change', newPuzzle);
+            document.getElementById('bs-daily').addEventListener('click', newDailyPuzzle);
+            document.getElementById('bs-new').addEventListener('click', newPuzzle);
+            document.getElementById('bs-restart').addEventListener('click', restart);
+
+            var bsResizeTimer;
+            window.addEventListener('resize', function(){
+                if(document.body.dataset.view!=='battleships'||!solution) return;
+                clearTimeout(bsResizeTimer); bsResizeTimer=setTimeout(render,150);
+            });
+
+            return { newPuzzle:newPuzzle, newDailyPuzzle:newDailyPuzzle, pause:pauseTimer, resume:resumeTimer, get puzzle(){return solution;} };
+        })();
+
+        /* =========================================================
+           Nonogram (Picross)
+        ========================================================= */
+        var NO = (function () {
+            var N = 5;
+            var solution = null, rowClues = null, colClues = null;
+            var playerGrid = null;
+            var solved = false, isDaily = false;
+            var elapsed = 0, timerInt = null, running = false;
+
+            var container  = document.getElementById('no-grid');
+            var statusEl   = document.getElementById('no-status');
+            var diffSel    = document.getElementById('no-diff');
+            var noTimeEl   = document.getElementById('no-time');
+            var noBestEl   = document.getElementById('no-best');
+            var noShareDiv = document.getElementById('no-share');
+            var noShareBtn = document.getElementById('no-share-btn');
+
+            function fmtTime(s) { return Math.floor(s / 60) + ':' + ('0' + (s % 60)).slice(-2); }
+            function showTime() { noTimeEl.textContent = fmtTime(elapsed); }
+            function startTimer() { elapsed = 0; showTime(); clearInterval(timerInt); running = true; timerInt = setInterval(function () { elapsed++; showTime(); }, 1000); }
+            function pauseTimer() { clearInterval(timerInt); running = false; }
+            function resumeTimer() { if (solved || !solution || running) return; running = true; timerInt = setInterval(function () { elapsed++; showTime(); }, 1000); }
+            function bestKey() { return 'fatott_no_best_' + diffSel.value; }
+            function updateBestDisplay() { var b = parseInt(localStorage.getItem(bestKey()) || '0', 10); noBestEl.textContent = b > 0 ? fmtTime(b) : '—'; }
+            function setStatus(m, w) { statusEl.textContent = m; statusEl.classList.toggle('win', !!w); }
+
+            function computeLineClue(grid, isRow, idx) {
+                var clue = [], run = 0;
+                for (var i = 0; i < N; i++) {
+                    var v = isRow ? grid[idx][i] : grid[i][idx];
+                    if (v === 1) { run++; }
+                    else if (run > 0) { clue.push(run); run = 0; }
+                }
+                if (run > 0) clue.push(run);
+                return clue.length ? clue : [0];
+            }
+            function cluesEq(a, b) {
+                if (a.length !== b.length) return false;
+                for (var i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+                return true;
+            }
+
+            function generate(diff, rng) {
+                N = diff === 'hard' ? 10 : 5;
+                var rand = rng || Math.random;
+                var tries = 0, g;
+                do {
+                    g = [];
+                    var filled = 0;
+                    for (var r = 0; r < N; r++) { g.push([]); for (var c = 0; c < N; c++) { var v = rand() < 0.45 ? 1 : 0; g[r].push(v); filled += v; } }
+                    tries++;
+                } while (tries < 10 && (filled === 0 || filled === N * N));
+                solution = g;
+                rowClues = []; colClues = [];
+                for (var r = 0; r < N; r++) rowClues.push(computeLineClue(solution, true, r));
+                for (var c = 0; c < N; c++) colClues.push(computeLineClue(solution, false, c));
+            }
+
+            function render() {
+                container.innerHTML = '';
+                container.classList.remove('solved');
+                var vw = window.innerWidth || 400;
+                var cellSz = N === 10
+                    ? Math.max(22, Math.min(28, Math.floor((vw * 0.9 - 52) / N)))
+                    : Math.max(36, Math.min(48, Math.floor((vw * 0.85 - 58) / N)));
+                var clueSz = N === 10 ? Math.max(40, cellSz * 1.6) : Math.max(46, cellSz * 1.2);
+                clueSz = Math.round(clueSz);
+
+                container.style.display = 'grid';
+                container.style.gridTemplateColumns = clueSz + 'px ' + Array(N).fill(cellSz + 'px').join(' ');
+                container.style.gap = '2px';
+
+                // Corner
+                var corner = document.createElement('div');
+                corner.style.cssText = 'width:' + clueSz + 'px;height:' + clueSz + 'px;';
+                container.appendChild(corner);
+
+                // Column clues
+                for (var c = 0; c < N; c++) {
+                    var cdiv = document.createElement('div');
+                    cdiv.className = 'nono-clue-col';
+                    cdiv.dataset.col = c;
+                    cdiv.style.cssText = 'width:' + cellSz + 'px;height:' + clueSz + 'px;';
+                    colClues[c].forEach(function (n) {
+                        var sp = document.createElement('span'); sp.className = 'nono-num'; sp.textContent = n; cdiv.appendChild(sp);
+                    });
+                    container.appendChild(cdiv);
+                }
+
+                // Rows
+                for (var r = 0; r < N; r++) {
+                    var rdiv = document.createElement('div');
+                    rdiv.className = 'nono-clue-row';
+                    rdiv.dataset.row = r;
+                    rdiv.style.cssText = 'width:' + clueSz + 'px;height:' + cellSz + 'px;';
+                    rowClues[r].forEach(function (n) {
+                        var sp = document.createElement('span'); sp.className = 'nono-num'; sp.textContent = n; rdiv.appendChild(sp);
+                    });
+                    container.appendChild(rdiv);
+                    for (var c = 0; c < N; c++) {
+                        var cell = document.createElement('div');
+                        cell.className = 'nono-cell';
+                        cell.style.cssText = 'width:' + cellSz + 'px;height:' + cellSz + 'px;';
+                        var pv = playerGrid[r][c];
+                        if (pv === 1) cell.classList.add('filled');
+                        if (pv === 2) { cell.classList.add('crossed'); cell.textContent = '\xD7'; }
+                        (function (rr, cc) {
+                            cell.addEventListener('pointerdown', function (e) { e.preventDefault(); onCell(rr, cc); });
+                        })(r, c);
+                        container.appendChild(cell);
+                    }
+                }
+                updateHighlights();
+            }
+
+            function updateHighlights() {
+                for (var r = 0; r < N; r++) {
+                    var rdiv = container.querySelector('[data-row="' + r + '"]');
+                    if (rdiv) { var done = cluesEq(computeLineClue(playerGrid, true, r), rowClues[r]); rdiv.querySelectorAll('.nono-num').forEach(function (el) { el.classList.toggle('done', done); }); }
+                }
+                for (var c = 0; c < N; c++) {
+                    var cdiv = container.querySelector('[data-col="' + c + '"]');
+                    if (cdiv) { var done = cluesEq(computeLineClue(playerGrid, false, c), colClues[c]); cdiv.querySelectorAll('.nono-num').forEach(function (el) { el.classList.toggle('done', done); }); }
+                }
+            }
+
+            function onCell(r, c) {
+                if (solved) return;
+                playerGrid[r][c] = playerGrid[r][c] === 0 ? 1 : playerGrid[r][c] === 1 ? 2 : 0;
+                var cells = container.querySelectorAll('.nono-cell');
+                var cell = cells[r * N + c];
+                cell.className = 'nono-cell';
+                cell.textContent = '';
+                if (playerGrid[r][c] === 1) cell.classList.add('filled');
+                if (playerGrid[r][c] === 2) { cell.classList.add('crossed'); cell.textContent = '\xD7'; }
+                updateHighlights();
+                checkWin();
+            }
+
+            function checkWin() {
+                if (solved) return;
+                for (var r = 0; r < N; r++) if (!cluesEq(computeLineClue(playerGrid, true, r), rowClues[r])) return;
+                for (var c = 0; c < N; c++) if (!cluesEq(computeLineClue(playerGrid, false, c), colClues[c])) return;
+                win();
+            }
+
+            function win() {
+                solved = true; pauseTimer();
+                var prev = parseInt(localStorage.getItem(bestKey()) || '0', 10);
+                var isBest = prev === 0 || elapsed < prev;
+                if (isBest) localStorage.setItem(bestKey(), String(elapsed));
+                updateBestDisplay();
+                container.classList.add('solved');
+                setStatus('Fat Ott is pleased — solved in ' + fmtTime(elapsed) + (isBest ? ' (new best!)' : ''), true);
+                if (isDaily) {
+                    localStorage.setItem('fatott_no_daily_' + diffSel.value + '_' + dailyDateStr(), String(elapsed));
+                    showShare(buildShareText());
+                }
+                ensureAudio(); blip(523, 0.14, 'triangle'); setTimeout(function () { blip(784, 0.22, 'triangle'); }, 130);
+                var box = container.getBoundingClientRect();
+                for (var i = 0; i < 6; i++) {
+                    (function (k) { setTimeout(function () { popAt(box.left + Math.random() * box.width, box.top + Math.random() * box.height, '✨'); }, k * 70); })(i);
+                }
+            }
+
+            function buildShareText() {
+                var diff = diffSel.value;
+                var lines = ['Fat Ott Nonogram — ' + dailyLabel() + ' 🎃',
+                             N + '\xD7' + N + ' \xB7 ' + diff.charAt(0).toUpperCase() + diff.slice(1)];
+                for (var r = 0; r < N; r++) {
+                    var line = '';
+                    for (var c = 0; c < N; c++) line += solution[r][c] ? '⬛' : '⬜';
+                    lines.push(line);
+                }
+                lines.push('⏱ ' + fmtTime(elapsed));
+                lines.push('fatott.com');
+                return lines.join('\n');
+            }
+
+            function showShare(text) {
+                noShareDiv.style.display = '';
+                noShareBtn.textContent = 'Copy result';
+                noShareBtn.onclick = function () {
+                    navigator.clipboard.writeText(text).then(function () {
+                        noShareBtn.textContent = 'Copied!';
+                        setTimeout(function () { noShareBtn.textContent = 'Copy result'; }, 1500);
+                    });
+                };
+            }
+            function hideShare() { noShareDiv.style.display = 'none'; }
+
+            function blankGrid() {
+                var g = [];
+                for (var r = 0; r < N; r++) { g.push([]); for (var c = 0; c < N; c++) g[r].push(0); }
+                return g;
+            }
+
+            function newPuzzle(rng) {
+                isDaily = false; hideShare();
+                document.getElementById('no-daily').classList.remove('daily-active');
+                generate(diffSel.value, rng);
+                playerGrid = blankGrid();
+                solved = false;
+                render();
+                setStatus('Tap to fill \xB7 tap again to cross out \xB7 once more to clear.', false);
+                updateBestDisplay(); startTimer();
+            }
+
+            function newDailyPuzzle() {
+                var diff = diffSel.value;
+                var rng = mulberry32(makeDailySeed(2, diff === 'hard' ? 1 : 0));
+                isDaily = true;
+                document.getElementById('no-daily').classList.add('daily-active');
+                hideShare();
+                var dkey = 'fatott_no_daily_' + diff + '_' + dailyDateStr();
+                var priorElapsed = parseInt(localStorage.getItem(dkey) || '0', 10);
+                newPuzzle(rng);
+                isDaily = true;
+                document.getElementById('no-daily').classList.add('daily-active');
+                if (priorElapsed > 0) {
+                    for (var r = 0; r < N; r++) for (var c = 0; c < N; c++) playerGrid[r][c] = solution[r][c] ? 1 : 0;
+                    solved = true; elapsed = priorElapsed; pauseTimer(); showTime();
+                    render(); container.classList.add('solved');
+                    setStatus('Fat Ott is pleased — solved in ' + fmtTime(priorElapsed), true);
+                    showShare(buildShareText());
+                }
+            }
+
+            function restart() {
+                if (!solution) return;
+                playerGrid = blankGrid(); solved = false;
+                render();
+                setStatus('Tap to fill \xB7 tap again to cross out \xB7 once more to clear.', false);
+                startTimer();
+            }
+
+            diffSel.addEventListener('change', newPuzzle);
+            document.getElementById('no-daily').addEventListener('click', newDailyPuzzle);
+            document.getElementById('no-new').addEventListener('click', newPuzzle);
+            document.getElementById('no-restart').addEventListener('click', restart);
+
+            var noResizeTimer;
+            window.addEventListener('resize', function () {
+                if (document.body.dataset.view !== 'nonogram' || !solution) return;
+                clearTimeout(noResizeTimer); noResizeTimer = setTimeout(render, 150);
+            });
+
+            return { newPuzzle: newPuzzle, newDailyPuzzle: newDailyPuzzle, pause: pauseTimer, resume: resumeTimer, get puzzle() { return solution; } };
+        })();
+
     })();
     </script>
 </body>
