@@ -471,6 +471,14 @@
         .hold-value { color: #d0d0d0; font-size: .88rem; font-family: monospace; text-align: right; }
         .hold-pnl { font-size: .73rem; font-family: monospace; text-align: right; }
         .port-empty { color: var(--ash); font-size: .83rem; opacity: .6; text-align: center; padding: 1.8rem 0; }
+
+        .macro-banner { width: 100%; border-radius: 7px; padding: .6rem .85rem; margin-bottom: .2rem; }
+        .macro-banner.macro-good { background: rgba(76,175,80,.12); border: 1px solid rgba(76,175,80,.35); }
+        .macro-banner.macro-bad  { background: rgba(239,83,80,.12); border: 1px solid rgba(239,83,80,.35); }
+        .macro-title { font-family: 'MedievalSharp', cursive; font-size: .88rem; letter-spacing: .03em; margin-bottom: .25rem; }
+        .macro-banner.macro-good .macro-title { color: #66bb6a; }
+        .macro-banner.macro-bad  .macro-title { color: #ef5350; }
+        .macro-desc { color: var(--ash); font-size: .78rem; line-height: 1.45; }
     </style>
 </head>
 <body data-view="home">
@@ -1608,6 +1616,26 @@
             var NEWS_DOWN = ['{name} slips on cautious guidance','Analyst cuts {ticker} to Hold','{name} misses revenue estimates','Profit-taking pressures {ticker}','{name} faces competitive headwinds','Costs weigh on {ticker} margins','{ticker} lags as sector rotates','{name} guides below consensus'];
             var NEWS_FLAT = ['{ticker} trades sideways in quiet session','Investors await catalyst for {name}','{ticker} consolidates near recent levels','Mixed signals keep {name} range-bound'];
 
+            var MACRO_EVENTS = [
+                { title:'Wealth Tax Enacted',        desc:'The government has passed emergency legislation levying a 5% wealth tax on all equity holdings. Markets have adjusted accordingly.',                                             mult:0.95 },
+                { title:'Currency Revaluation',      desc:'The Federated Exchange Board has revalued the national currency downward by 8%. All domestic equity prices reflect the adjustment.',                                           mult:0.92 },
+                { title:'The Great Pumpkin Rally',   desc:'Investor sentiment surges to euphoric levels for no discernible reason. Analysts are calling it "the Great Pumpkin Rally." All stocks benefit.',                               mult:1.11 },
+                { title:'Algorithmic Trading Glitch',desc:'A rogue algorithm floods the market with sell orders before being shut down remotely. Circuit breakers partially engaged. Damage done.',                                        mult:0.88 },
+                { title:'Emergency Rate Hike',       desc:'The central bank raises rates 250bps in an unscheduled meeting, citing "spooky inflationary pressures." Equities broadly repriced.',                                           mult:0.89 },
+                { title:'Inflation Shock',           desc:'Consumer prices printed at 13.8% year-over-year — the highest since 1979. Real returns evaporate as markets digest the number.',                                         mult:0.91 },
+                { title:'Fat Ott Sighting',          desc:'Fat Ott has been photographed in the financial district. Investors, interpreting this as an omen of prosperity, pour capital into equities.',                                  mult:1.09 },
+                { title:'Emergency Stimulus',        desc:'The government announces a $2 trillion stimulus package to be distributed directly to citizens. Markets surge on demand optimism.',                                             mult:1.08 },
+                { title:'The Grimoire Scandal',      desc:'A leaked document reveals several major institutions have been using "enchanted" accounting methods. Investor confidence shattered.',                                            mult:0.87 },
+                { title:'Near-Miss Asteroid Event',  desc:'A small asteroid passed within 40,000 miles of Earth. Panic selling ensued before it was confirmed harmless. Markets have not fully recovered.',                               mult:0.93 },
+                { title:'Tax Amnesty Declared',      desc:'A one-time tax amnesty unleashes a flood of previously hidden capital into equity markets. Volumes triple. All stocks benefit.',                                               mult:1.07 },
+                { title:'Supply Chain Collapse',     desc:'Three major shipping lanes simultaneously disrupted by "unusual fog." Logistics costs spike. All sectors feel the pain.',                                                       mult:0.90 },
+                { title:'Harvest Festival Surge',    desc:'Annual Harvest Festival spending comes in at triple estimates. Consumer confidence hits all-time highs. Markets celebrate enthusiastically.',                                   mult:1.06 },
+                { title:'Regional Banking Crisis',   desc:'Three regional banks announce they invested deposits in "magic beans." Government bailout discussions ongoing. Contagion fears spread.',                                        mult:0.86 },
+                { title:'Surprise Rate Cut',         desc:'The central bank makes an emergency 200bps rate cut, citing "vibes." Equity markets surge decisively on the news.',                                                           mult:1.10 },
+                { title:'Inheritance Tax Tsunami',   desc:'New inheritance tax rules take immediate effect, triggering forced estate liquidations across the market. Broad selling pressure.',                                             mult:0.94 },
+                { title:'Sovereign Wealth Buying',   desc:'An unnamed sovereign wealth fund announces it is buying "everything." Index-level demand lifts all boats regardless of fundamentals.',                                         mult:1.05 },
+            ];
+
             var priceCache = {}, cachedDay = -1;
             var portfolio = { cash: 10000, holdings: {} };
             var viewState = 'list', selIdx = -1, qtySelected = 1;
@@ -1634,16 +1662,46 @@
                 return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
             }
 
+            function getMacroEvent(day) {
+                if (day === 0) return null;
+                var rng = mulberry32(day * 88889 + 333333);
+                if (rng() > 0.12) return null;
+                return MACRO_EVENTS[Math.floor(rng() * MACRO_EVENTS.length)];
+            }
+
             function buildCache() {
                 var dayN = dayNumber(); cachedDay = dayN;
+                var macroMult = [1];
+                for (var d = 1; d <= dayN; d++) { var ev = getMacroEvent(d); macroMult.push(ev ? ev.mult : 1); }
                 STOCKS.forEach(function (s, i) {
                     var arr = [s.base], p = s.base;
                     for (var d = 1; d <= dayN; d++) {
-                        p = Math.max(0.01, p * (1 + s.drift + s.vol * normalRand(mulberry32(i * 100003 + d))));
+                        p = Math.max(0.01, p * (1 + s.drift + s.vol * normalRand(mulberry32(i * 100003 + d))) * macroMult[d]);
                         arr.push(p);
                     }
                     priceCache[i] = arr;
                 });
+            }
+
+            var LEVERAGE_LIMIT = 3, INTEREST_RATE = 0.001;
+
+            function positionValue() {
+                var v = 0;
+                Object.keys(portfolio.holdings).forEach(function (k) { v += curPrice(parseInt(k, 10)) * portfolio.holdings[k].shares; });
+                return v;
+            }
+            function borrowed() { return Math.max(0, -portfolio.cash); }
+            function buyingPower() { return Math.max(0, Math.max(totalValue(), 0) * LEVERAGE_LIMIT - positionValue()); }
+
+            function chargeInterest() {
+                var dayN = dayNumber(), last = portfolio.lastInterestDay == null ? dayN : portfolio.lastInterestDay;
+                if (dayN <= last) return;
+                for (var d = last + 1; d <= dayN; d++) {
+                    var brw = Math.max(0, -portfolio.cash);
+                    if (brw > 0) portfolio.cash -= brw * INTEREST_RATE;
+                }
+                portfolio.lastInterestDay = dayN;
+                savePort();
             }
 
             function curPrice(i) { var a = priceCache[i]; return a[a.length - 1]; }
@@ -1688,7 +1746,7 @@
 
             function buy(idx, qty) {
                 var cost = curPrice(idx) * qty;
-                if (cost > portfolio.cash + 0.005 || qty < 1) return false;
+                if (cost > buyingPower() + 0.005 || qty < 1) return false;
                 portfolio.cash -= cost;
                 if (!portfolio.holdings[idx]) portfolio.holdings[idx] = { shares: 0, avgCost: 0 };
                 var h = portfolio.holdings[idx];
@@ -1706,7 +1764,16 @@
             }
 
             function renderList() {
-                var html = '<div class="stock-list">';
+                var dayN = dayNumber(), ev = getMacroEvent(dayN);
+                var html = '';
+                if (ev) {
+                    var isGood = ev.mult >= 1;
+                    html += '<div class="macro-banner '+(isGood?'macro-good':'macro-bad')+'">';
+                    html += '<div class="macro-title">'+(isGood ? '&#9650;' : '&#9660;')+' '+ev.title+'</div>';
+                    html += '<div class="macro-desc">'+ev.desc+'</div>';
+                    html += '</div>';
+                }
+                html += '<div class="stock-list">';
                 STOCKS.forEach(function (s, i) {
                     var p = curPrice(i), chg = todayChg(i);
                     var chgCls = chg > 0.0001 ? 'chg-up' : chg < -0.0001 ? 'chg-dn' : 'chg-flat';
@@ -1754,7 +1821,8 @@
                 });
                 html += '</div>';
                 html += '<div class="trade-btns"><button class="btn-buy" id="det-buy">Buy</button><button class="btn-sell" id="det-sell">Sell</button></div>';
-                html += '<div class="trade-cash">Cash: '+fmtUSD(portfolio.cash)+'</div>';
+                var brwNow = borrowed();
+                html += '<div class="trade-cash">'+(brwNow > 0 ? '<span style="color:#f5a623">Borrowed: '+fmtUSD(brwNow)+'</span> &middot; ' : '')+'Buying power: '+fmtUSD(buyingPower())+'</div>';
 
                 var el = document.getElementById('mkt-detail-content');
                 el.innerHTML = html;
@@ -1781,7 +1849,7 @@
 
             function resolveQty(idx, side) {
                 if (qtySelected === 'Max') {
-                    if (side === 'buy') return Math.max(1, Math.floor(portfolio.cash / curPrice(idx)));
+                    if (side === 'buy') return Math.max(1, Math.floor(buyingPower() / curPrice(idx)));
                     var h = portfolio.holdings[idx]; return h ? Math.floor(h.shares) : 0;
                 }
                 return qtySelected;
@@ -1791,8 +1859,12 @@
                 var buyBtn = document.getElementById('det-buy'), sellBtn = document.getElementById('det-sell');
                 if (!buyBtn || !sellBtn) return;
                 var bq = resolveQty(idx, 'buy'), sq = resolveQty(idx, 'sell');
-                buyBtn.disabled = curPrice(idx) * bq > portfolio.cash + 0.005 || bq < 1;
-                buyBtn.textContent = 'Buy ' + bq;
+                var cost = curPrice(idx) * bq;
+                var onMargin = cost > portfolio.cash + 0.005;
+                buyBtn.disabled = cost > buyingPower() + 0.005 || bq < 1;
+                buyBtn.textContent = 'Buy ' + bq + (onMargin && !buyBtn.disabled ? ' (margin)' : '');
+                buyBtn.style.borderColor = (onMargin && !buyBtn.disabled) ? '#f5a623' : '';
+                buyBtn.style.color = (onMargin && !buyBtn.disabled) ? '#f5a623' : '';
                 var h = portfolio.holdings[idx];
                 sellBtn.disabled = !h || h.shares < sq - 0.001 || sq < 1;
                 sellBtn.textContent = 'Sell ' + sq;
@@ -1800,11 +1872,18 @@
 
             function renderPortfolio() {
                 var total = totalValue(), pnl = total - 10000, pnlCls = pnl >= 0 ? 'chg-up' : 'chg-dn';
+                var brw = borrowed(), bpow = buyingPower();
                 var html = '<div class="port-summary">';
-                html += '<div class="port-total-label">Portfolio Value</div>';
+                html += '<div class="port-total-label">Portfolio Equity</div>';
                 html += '<div class="port-total">'+fmtUSD(total)+'</div>';
                 html += '<div class="port-pnl"><span class="'+pnlCls+'">'+(pnl>=0?'+':'')+fmtUSD(pnl)+' ('+(pnl>=0?'+':'')+(pnl/100).toFixed(2)+'%)</span> since start</div>';
-                html += '<div class="port-cash-line">Cash available: '+fmtUSD(portfolio.cash)+'</div>';
+                if (brw > 0) {
+                    var lev = total > 0 ? ((positionValue() / total).toFixed(2) + '×') : '—';
+                    html += '<div class="port-cash-line" style="color:#f5a623">Borrowed: '+fmtUSD(brw)+' @ 0.1%/day &middot; Leverage: '+lev+'</div>';
+                    html += '<div class="port-cash-line">Buying power: '+fmtUSD(bpow)+'</div>';
+                } else {
+                    html += '<div class="port-cash-line">Cash: '+fmtUSD(portfolio.cash)+'&ensp;&middot;&ensp;Buying power: '+fmtUSD(bpow)+'</div>';
+                }
                 html += '</div>';
 
                 var keys = Object.keys(portfolio.holdings).filter(function (k) { return portfolio.holdings[k] && portfolio.holdings[k].shares > 0.001; });
@@ -1865,6 +1944,7 @@
             function init() {
                 loadPort();
                 if (dayNumber() !== cachedDay) buildCache();
+                chargeInterest();
                 document.getElementById('mkt-day-label').textContent = 'Market as of ' + dayLabel() + (dayNumber() > 0 ? ' \xB7 Day ' + dayNumber() : ' \xB7 Opening day');
                 initialized = true;
                 if (viewState === 'portfolio') showPortfolio();
