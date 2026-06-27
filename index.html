@@ -472,6 +472,7 @@
         .hold-pnl { font-size: .73rem; font-family: monospace; text-align: right; }
         .port-empty { color: var(--ash); font-size: .83rem; opacity: .6; text-align: center; padding: 1.8rem 0; }
 
+        .mkt-market-line { width: 100%; font-size: .78rem; color: var(--ash); padding: .2rem .1rem; }
         .macro-banner { width: 100%; border-radius: 7px; padding: .6rem .85rem; margin-bottom: .2rem; }
         .macro-banner.macro-good { background: rgba(76,175,80,.12); border: 1px solid rgba(76,175,80,.35); }
         .macro-banner.macro-bad  { background: rgba(239,83,80,.12); border: 1px solid rgba(239,83,80,.35); }
@@ -1573,44 +1574,65 @@
         var MKT = (function () {
             var LAUNCH_MS = new Date('2026-06-26T00:00:00').getTime();
 
+            // betaMkt: sensitivity to daily market factor
+            // betaInd: sensitivity to daily sector factor
+            // idio: stock-specific (idiosyncratic) daily volatility
             var STOCKS = [
                 { ticker:'SPKTR', name:'Specter Technologies', sector:'Technology',
                   desc:'Specter develops AI-powered surveillance and analytics software for municipal governments. Revenue has grown 40% annually for three years but the company has yet to post a profit. Management recently guided for break-even by Q4.',
-                  base:48.20, drift:0.0004, vol:0.028 },
+                  base:48.20, drift:0.0004, betaMkt:1.4, betaInd:0.8, idio:0.018 },
                 { ticker:'GRDM', name:'Grimshaw & Dour Capital', sector:'Financial Services',
                   desc:'A conservative regional investment bank founded in 1887. GRDM focuses on fixed-income underwriting and wealth management for high-net-worth clients. Known for reliable dividends and minimal drama.',
-                  base:31.50, drift:0.00010, vol:0.008 },
+                  base:31.50, drift:0.00010, betaMkt:0.4, betaInd:0.5, idio:0.004 },
                 { ticker:'HVST', name:'Harvest Collective Corp', sector:'Consumer Staples',
                   desc:'Harvest operates 340 specialty grocery stores across the Midwest, focusing on organic and seasonal produce. Steady foot traffic and loyalty programs have insulated it from e-commerce disruption. A classic defensive holding.',
-                  base:22.80, drift:0.00015, vol:0.010 },
+                  base:22.80, drift:0.00015, betaMkt:0.4, betaInd:0.6, idio:0.007 },
                 { ticker:'MRRW', name:'Marrow Biomedical', sector:'Healthcare',
                   desc:'Marrow is developing a bone marrow stimulant for chemotherapy patients. Phase 3 trial data is expected within six months. The stock is essentially a binary bet on trial success — or catastrophic failure.',
-                  base:12.40, drift:0.0001, vol:0.045 },
+                  base:12.40, drift:0.0001, betaMkt:0.5, betaInd:0.4, idio:0.042 },
                 { ticker:'CLDN', name:'Cauldron Energy Partners', sector:'Energy',
                   desc:'A mid-size natural gas producer in the Appalachian Basin. Results track Henry Hub spot prices closely, which have been volatile. Management recently hedged 60% of next year\'s production at $3.20/MMBtu.',
-                  base:18.70, drift:0.00005, vol:0.025 },
+                  base:18.70, drift:0.00005, betaMkt:0.9, betaInd:1.1, idio:0.015 },
                 { ticker:'SHRWD', name:'Shrewdwood Analytics', sector:'Technology',
                   desc:'Shrewdwood sells data analytics software to hedge funds and proprietary trading desks. Its flagship "Fog of War" dashboard is considered best-in-class. Customer retention is 94% and free cash flow is substantial.',
-                  base:87.30, drift:0.0003, vol:0.018 },
+                  base:87.30, drift:0.0003, betaMkt:1.0, betaInd:0.7, idio:0.012 },
                 { ticker:'BNSH', name:'Banshee Media Group', sector:'Communication',
                   desc:'Once a dominant print publisher, Banshee has struggled to monetize its digital transition. The podcast network shows promise, but print advertising declines are accelerating. Management has been replaced twice in three years.',
-                  base:8.60, drift:-0.0002, vol:0.020 },
+                  base:8.60, drift:-0.0002, betaMkt:0.7, betaInd:0.6, idio:0.015 },
                 { ticker:'CRPW', name:'Cryptwood Mining Co', sector:'Materials',
                   desc:'Cryptwood extracts copper and rare earth minerals from Appalachian holdings. The energy-transition thesis has attracted speculative interest, but reserves are smaller than initially reported and leverage is elevated.',
-                  base:6.20, drift:0.00005, vol:0.038 },
+                  base:6.20, drift:0.00005, betaMkt:0.9, betaInd:1.0, idio:0.030 },
                 { ticker:'WTHRD', name:'Withered Oak Financial', sector:'Financial Services',
                   desc:'A specialty insurer focused on agricultural and weather-related coverage. Premium growth has been steady as climate volatility increases demand. The combined ratio has stayed below 92% for seven consecutive years.',
-                  base:41.10, drift:0.00012, vol:0.007 },
+                  base:41.10, drift:0.00012, betaMkt:0.3, betaInd:0.4, idio:0.004 },
                 { ticker:'PMPKN', name:'Pumpkin Vine Logistics', sector:'Industrials',
                   desc:'Pumpkin Vine operates a regional freight network across 12 states. An aging fleet and fuel costs have pressured margins, but a new contract with a major retailer adds $40M in annual revenue starting next year. The turnaround is unproven.',
-                  base:14.90, drift:0.00010, vol:0.022 },
+                  base:14.90, drift:0.00010, betaMkt:0.8, betaInd:0.8, idio:0.015 },
                 { ticker:'NMRD', name:'Nimrod Pharmaceuticals', sector:'Healthcare',
                   desc:'Nimrod has three approved drugs and a growing pipeline. Its lead product for treatment-resistant depression generates $180M in annual revenue and is growing 22% per year. A compounder, not a speculative bet.',
-                  base:63.80, drift:0.00020, vol:0.018 },
+                  base:63.80, drift:0.00020, betaMkt:0.7, betaInd:0.5, idio:0.013 },
                 { ticker:'FFOG', name:'Fathomfog Shipping', sector:'Industrials',
                   desc:'An international bulk shipping company with a fleet of 18 vessels. Rates have rebounded from post-pandemic lows and the order book is manageable. The CEO recently purchased $2M in stock on the open market.',
-                  base:29.50, drift:0.00008, vol:0.020 }
+                  base:29.50, drift:0.00008, betaMkt:0.9, betaInd:0.9, idio:0.012 }
             ];
+
+            // Sector index + daily sector factor volatility
+            var SECTORS = {
+                'Technology':         { idx:0, vol:0.015 },
+                'Financial Services': { idx:1, vol:0.010 },
+                'Consumer Staples':   { idx:2, vol:0.006 },
+                'Healthcare':         { idx:3, vol:0.012 },
+                'Energy':             { idx:4, vol:0.018 },
+                'Communication':      { idx:5, vol:0.010 },
+                'Materials':          { idx:6, vol:0.016 },
+                'Industrials':        { idx:7, vol:0.010 },
+            };
+
+            var MKT_VOL = 0.012, MKT_DRIFT = 0.0001; // market factor params
+
+            var MKT_HEAD_UP = ['Strong jobs data lifts all sectors','Central bank signals pause; equities advance','GDP revision beats; risk appetite returns','Consumer confidence surges; broad rally','Inflation cools; markets celebrate','Trade deal hopes drive market higher','Analysts upgrade macro outlook broadly'];
+            var MKT_HEAD_DN = ['Recession fears spark broad selloff','Rate hike worries drag equities lower','Weak retail data weighs on all sectors','Credit concerns spread to equities','Fed minutes hawkish; markets retreat','Global growth fears hit stocks broadly','Earnings season disappoints; broad selling'];
+            var MKT_HEAD_FL = ['Markets drift sideways in thin trading','Sector rotation keeps indices flat','Investors await catalyst; volume light','Mixed signals leave markets rangebound'];
 
             var NEWS_UP   = ['{name} rises on positive outlook','Analysts raise target on {ticker}','{name} beats expectations','Institutional buying lifts {ticker}','{name} announces strategic expansion','{ticker} outperforms amid broad gains','{name} upgraded by major brokerage','Strong data lifts {ticker}'];
             var NEWS_DOWN = ['{name} slips on cautious guidance','Analyst cuts {ticker} to Hold','{name} misses revenue estimates','Profit-taking pressures {ticker}','{name} faces competitive headwinds','Costs weigh on {ticker} margins','{ticker} lags as sector rotates','{name} guides below consensus'];
@@ -1636,7 +1658,7 @@
                 { title:'Sovereign Wealth Buying',   desc:'An unnamed sovereign wealth fund announces it is buying "everything." Index-level demand lifts all boats regardless of fundamentals.',                                         mult:1.05 },
             ];
 
-            var priceCache = {}, cachedDay = -1;
+            var priceCache = {}, marketCache = [], cachedDay = -1;
             var portfolio = { cash: 10000, holdings: {} };
             var viewState = 'list', selIdx = -1, qtySelected = 1;
 
@@ -1669,14 +1691,49 @@
                 return MACRO_EVENTS[Math.floor(rng() * MACRO_EVENTS.length)];
             }
 
+            function getMarketHeadline(day) {
+                if (day === 0 || !marketCache[day]) return null;
+                var ret = marketCache[day];
+                var tpl = ret > 0.003 ? MKT_HEAD_UP : ret < -0.003 ? MKT_HEAD_DN : MKT_HEAD_FL;
+                var t = tpl[Math.floor(mulberry32(day * 66661 + 555555)() * tpl.length)];
+                return { ret: ret, text: t };
+            }
+
             function buildCache() {
                 var dayN = dayNumber(); cachedDay = dayN;
+
+                // Factor 0: macro event shocks (discrete)
                 var macroMult = [1];
                 for (var d = 1; d <= dayN; d++) { var ev = getMacroEvent(d); macroMult.push(ev ? ev.mult : 1); }
+
+                // Factor 1: market factor — common daily return for all stocks
+                var mktRet = [0];
+                for (var d = 1; d <= dayN; d++) {
+                    mktRet.push(MKT_DRIFT + MKT_VOL * normalRand(mulberry32(d * 55555 + 111111)));
+                }
+                marketCache = mktRet;
+
+                // Factor 2: sector factors — one draw per sector per day
+                var secRet = {}; // sectorIdx → [0, r1, r2, ...]
+                Object.keys(SECTORS).forEach(function (sec) {
+                    var s = SECTORS[sec], arr = [0];
+                    for (var d = 1; d <= dayN; d++) {
+                        arr.push(s.vol * normalRand(mulberry32(s.idx * 1000007 + d * 33331 + 444444)));
+                    }
+                    secRet[s.idx] = arr;
+                });
+
+                // Factor 3: idiosyncratic noise + combine all factors into price paths
                 STOCKS.forEach(function (s, i) {
+                    var secIdx = SECTORS[s.sector].idx;
                     var arr = [s.base], p = s.base;
                     for (var d = 1; d <= dayN; d++) {
-                        p = Math.max(0.01, p * (1 + s.drift + s.vol * normalRand(mulberry32(i * 100003 + d))) * macroMult[d]);
+                        var eps = normalRand(mulberry32(i * 100003 + d));
+                        var ret = s.drift
+                            + s.betaMkt * mktRet[d]
+                            + s.betaInd * secRet[secIdx][d]
+                            + s.idio * eps;
+                        p = Math.max(0.01, p * (1 + ret) * macroMult[d]);
                         arr.push(p);
                     }
                     priceCache[i] = arr;
@@ -1707,6 +1764,13 @@
             function curPrice(i) { var a = priceCache[i]; return a[a.length - 1]; }
             function prevClose(i) { var a = priceCache[i]; return a.length >= 2 ? a[a.length - 2] : a[0]; }
             function todayChg(i) { var c = curPrice(i), p = prevClose(i); return (c - p) / p; }
+
+            function sectorRetToday(sector) {
+                var dayN = dayNumber(); if (dayN === 0) return null;
+                var s = SECTORS[sector]; if (!s) return null;
+                var rng = mulberry32(s.idx * 1000007 + dayN * 33331 + 444444);
+                return s.vol * normalRand(rng);
+            }
 
             function getDailyNews(i) {
                 var dayN = dayNumber(); if (dayN === 0) return null;
@@ -1764,8 +1828,13 @@
             }
 
             function renderList() {
-                var dayN = dayNumber(), ev = getMacroEvent(dayN);
+                var dayN = dayNumber(), ev = getMacroEvent(dayN), mktInfo = getMarketHeadline(dayN);
                 var html = '';
+                if (mktInfo) {
+                    var mCls = mktInfo.ret > 0.0001 ? 'chg-up' : mktInfo.ret < -0.0001 ? 'chg-dn' : 'chg-flat';
+                    var mStr = (mktInfo.ret >= 0 ? '+' : '') + (mktInfo.ret * 100).toFixed(2) + '%';
+                    html += '<div class="mkt-market-line"><span class="'+mCls+'">Market '+mStr+'</span> &mdash; '+mktInfo.text+'</div>';
+                }
                 if (ev) {
                     var isGood = ev.mult >= 1;
                     html += '<div class="macro-banner '+(isGood?'macro-good':'macro-bad')+'">';
@@ -1808,7 +1877,9 @@
 
                 var html = '';
                 html += '<div class="det-head"><span class="det-ticker">'+s.ticker+'</span><span class="det-full-name">'+s.name+'</span></div>';
-                html += '<div class="det-sector">'+s.sector+'</div>';
+                var secRet = sectorRetToday(s.sector);
+                var secStr = secRet !== null ? ' &middot; sector ' + (secRet >= 0 ? '+' : '') + (secRet * 100).toFixed(2) + '%' : '';
+                html += '<div class="det-sector">'+s.sector+secStr+'</div>';
                 html += '<div class="det-price-row"><span class="det-price">'+fmtUSD(p)+'</span><span class="'+chgCls+'">'+(chg>=0?'+':'')+(chg*100).toFixed(2)+'%</span></div>';
                 html += '<div id="det-chart">'+chartSVG(hist, 80)+'</div>';
                 if (news) html += '<div class="det-news">'+news+'</div>';
