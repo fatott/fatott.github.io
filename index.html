@@ -397,6 +397,80 @@
         .bs-fleet-ship { display: flex; gap: 2px; }
         .bs-fleet-seg { width: 13px; height: 13px; background: var(--ember); border-radius: 2px; transition: background .2s, opacity .2s; }
         .bs-fleet-ship.found .bs-fleet-seg { background: var(--ash); opacity: .3; }
+
+        /* Market ------------------------------------------------------- */
+        #market-view { display: none; flex-direction: column; align-items: center; gap: .7rem;
+            width: min(440px, 96vw); }
+        body[data-view="market"] #market-view { display: flex; }
+        body[data-view="market"] { justify-content: flex-start; overflow-y: auto; padding: .9rem 0 3rem; }
+
+        .mkt-subnav { display: flex; gap: .45rem; }
+        .mkt-nav { font-family: 'MedievalSharp', cursive; font-size: .82rem; color: var(--ash);
+            background: none; border: 1px solid rgba(138,154,154,.3); border-radius: 20px;
+            padding: .32rem 1rem; cursor: pointer; letter-spacing: .05em; transition: all .15s; }
+        .mkt-nav.active { color: var(--ember); border-color: var(--ember); }
+
+        #mkt-day-label { color: var(--ash); font-size: .75rem; opacity: .65; }
+
+        .stock-list { display: flex; flex-direction: column; gap: .45rem; width: 100%; }
+        .stock-card { display: flex; align-items: center; gap: .55rem; padding: .6rem .85rem;
+            background: rgba(26,58,58,.22); border: 1px solid rgba(138,154,154,.18); border-radius: 8px;
+            cursor: pointer; transition: border-color .15s; -webkit-tap-highlight-color: transparent; }
+        .stock-card:hover, .stock-card:active { border-color: rgba(138,154,154,.45); }
+        .sc-left { flex: 1 1 auto; min-width: 0; }
+        .sc-ticker { font-family: 'MedievalSharp', cursive; color: var(--ember); font-size: .92rem; letter-spacing: .05em; }
+        .sc-name { color: var(--ash); font-size: .73rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .sc-mid { flex: 0 0 72px; }
+        .sc-right { flex: 0 0 68px; text-align: right; }
+        .sc-price { color: #d8d8d8; font-size: .9rem; font-family: monospace; }
+        .chg-up { color: #66bb6a; font-size: .78rem; font-family: monospace; }
+        .chg-dn { color: #ef5350; font-size: .78rem; font-family: monospace; }
+        .chg-flat { color: var(--ash); font-size: .78rem; font-family: monospace; }
+
+        .mkt-back-btn { background: none; border: none; color: var(--ash); font-family: 'MedievalSharp', cursive;
+            font-size: .82rem; cursor: pointer; padding: .2rem 0 .4rem; letter-spacing: .05em; display: block; }
+        #mkt-detail-content { display: flex; flex-direction: column; gap: .75rem; width: 100%; }
+        .det-head { display: flex; align-items: baseline; gap: .6rem; flex-wrap: wrap; }
+        .det-ticker { font-family: 'MedievalSharp', cursive; color: var(--ember); font-size: 1.25rem; }
+        .det-full-name { color: #d0d0d0; font-size: .88rem; }
+        .det-sector { color: var(--ash); font-size: .74rem; opacity: .65; }
+        .det-price-row { display: flex; align-items: baseline; gap: .55rem; }
+        .det-price { color: #d8d8d8; font-size: 1.4rem; font-family: monospace; }
+        .det-news { font-style: italic; color: var(--ash); font-size: .8rem; line-height: 1.45;
+            padding: .5rem .7rem; background: rgba(26,58,58,.35); border-left: 2px solid rgba(138,154,154,.28); border-radius: 0 4px 4px 0; }
+        .det-desc { color: var(--ash); font-size: .81rem; line-height: 1.52; }
+        .det-position { padding: .5rem .7rem; background: rgba(26,58,58,.3); border-radius: 6px;
+            font-size: .8rem; color: var(--ash); line-height: 1.5; }
+        .det-position strong { color: #d0d0d0; }
+
+        .trade-qty { display: flex; gap: .35rem; align-items: center; flex-wrap: wrap; justify-content: center; }
+        .trade-qty-label { color: var(--ash); font-size: .78rem; margin-right: .1rem; }
+        .qty-chip { font-size: .78rem; padding: .22rem .58rem; border-radius: 12px;
+            border: 1px solid rgba(138,154,154,.28); background: none; color: var(--ash);
+            cursor: pointer; transition: all .12s; }
+        .qty-chip.active { border-color: var(--ember); color: var(--ember); }
+        .trade-btns { display: flex; gap: .65rem; justify-content: center; }
+        .btn-buy { background: rgba(76,175,80,.13); border: 1px solid #4caf50; color: #66bb6a; border-radius: 6px;
+            padding: .48rem 1.3rem; font-family: 'MedievalSharp', cursive; font-size: .88rem; cursor: pointer; letter-spacing: .04em; transition: opacity .12s; }
+        .btn-sell { background: rgba(239,83,80,.13); border: 1px solid #ef5350; color: #ef5350; border-radius: 6px;
+            padding: .48rem 1.3rem; font-family: 'MedievalSharp', cursive; font-size: .88rem; cursor: pointer; letter-spacing: .04em; transition: opacity .12s; }
+        .btn-buy:disabled, .btn-sell:disabled { opacity: .32; cursor: not-allowed; }
+        .trade-cash { color: var(--ash); font-size: .76rem; text-align: center; }
+
+        .port-summary { padding: .85rem 1rem; background: rgba(26,58,58,.28); border-radius: 8px; width: 100%; }
+        .port-total-label { color: var(--ash); font-size: .74rem; margin-bottom: .2rem; }
+        .port-total { font-family: 'MedievalSharp', cursive; color: #d8d8d8; font-size: 1.4rem; }
+        .port-pnl { font-size: .82rem; margin-top: .18rem; }
+        .port-cash-line { color: var(--ash); font-size: .78rem; margin-top: .28rem; }
+        .port-holdings { display: flex; flex-direction: column; gap: .4rem; width: 100%; }
+        .port-holding { display: flex; justify-content: space-between; align-items: center;
+            padding: .52rem .82rem; background: rgba(26,58,58,.2); border: 1px solid rgba(138,154,154,.14);
+            border-radius: 6px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+        .hold-ticker { font-family: 'MedievalSharp', cursive; color: var(--ember); font-size: .88rem; }
+        .hold-shares { color: var(--ash); font-size: .73rem; }
+        .hold-value { color: #d0d0d0; font-size: .88rem; font-family: monospace; text-align: right; }
+        .hold-pnl { font-size: .73rem; font-family: monospace; text-align: right; }
+        .port-empty { color: var(--ash); font-size: .83rem; opacity: .6; text-align: center; padding: 1.8rem 0; }
     </style>
 </head>
 <body data-view="home">
@@ -411,6 +485,7 @@
         <button class="tab" data-view="bridges">Bridges</button>
         <button class="tab" data-view="nonogram">Nonogram</button>
         <button class="tab" data-view="battleships">Battleships</button>
+        <button class="tab" data-view="market">Market</button>
     </nav>
 
     <div class="pumpkin-wrap">
@@ -476,6 +551,23 @@
         <div class="fk-status" id="br-status">Connect the islands so each has exactly its number of bridges, all joined into one network. Tap an island, then another in line with it.</div>
         <div id="br-share" style="display:none; margin-top:.5rem; text-align:center;">
             <button class="btn" id="br-share-btn" style="font-size:.85rem; padding:.4rem 1.1rem;">Copy result</button>
+        </div>
+    </section>
+
+    <!-- Market -->
+    <section id="market-view">
+        <div class="mkt-subnav">
+            <button class="mkt-nav active" id="mkt-list-btn">Market</button>
+            <button class="mkt-nav" id="mkt-port-btn">Portfolio</button>
+        </div>
+        <div id="mkt-day-label"></div>
+        <div id="mkt-list-view" style="width:100%"></div>
+        <div id="mkt-detail-view" style="display:none;width:100%">
+            <button class="mkt-back-btn" id="mkt-back-btn">&larr; Market</button>
+            <div id="mkt-detail-content"></div>
+        </div>
+        <div id="mkt-port-view" style="display:none;width:100%">
+            <div id="mkt-port-content"></div>
         </div>
     </section>
 
@@ -566,6 +658,7 @@
             if (prev === 'bridges' && name !== 'bridges') BR.pause();
             if (prev === 'nonogram' && name !== 'nonogram') NO.pause();
             if (prev === 'battleships' && name !== 'battleships') BS.pause();
+            if (prev === 'market' && name !== 'market') MKT.pause();
             document.body.dataset.view = name;
             tabs.forEach(function (t) { t.classList.toggle('active', t.dataset.view === name); });
             if (name === 'arcade') resetArcadePanels();
@@ -573,6 +666,7 @@
             if (name === 'bridges') { if (!BR.puzzle) BR.newPuzzle(); else BR.resume(); }
             if (name === 'nonogram') { if (!NO.puzzle) NO.newPuzzle(); else NO.resume(); }
             if (name === 'battleships') { if (!BS.puzzle) BS.newPuzzle(); else BS.resume(); }
+            if (name === 'market') MKT.init();
         }
         tabs.forEach(function (t) { t.addEventListener('click', function () { showView(t.dataset.view); }); });
 
@@ -1465,6 +1559,322 @@
 
             return { newPuzzle: newPuzzle, newDailyPuzzle: newDailyPuzzle, pause: pauseTimer, resume: resumeTimer, get puzzle() { return islands.length ? islands : null; } };
         })();
+        /* =========================================================
+           Market (virtual stock market)
+        ========================================================= */
+        var MKT = (function () {
+            var LAUNCH_MS = new Date('2026-06-26T00:00:00').getTime();
+
+            var STOCKS = [
+                { ticker:'SPKTR', name:'Specter Technologies', sector:'Technology',
+                  desc:'Specter develops AI-powered surveillance and analytics software for municipal governments. Revenue has grown 40% annually for three years but the company has yet to post a profit. Management recently guided for break-even by Q4.',
+                  base:48.20, drift:0.0004, vol:0.028 },
+                { ticker:'GRDM', name:'Grimshaw & Dour Capital', sector:'Financial Services',
+                  desc:'A conservative regional investment bank founded in 1887. GRDM focuses on fixed-income underwriting and wealth management for high-net-worth clients. Known for reliable dividends and minimal drama.',
+                  base:31.50, drift:0.00010, vol:0.008 },
+                { ticker:'HVST', name:'Harvest Collective Corp', sector:'Consumer Staples',
+                  desc:'Harvest operates 340 specialty grocery stores across the Midwest, focusing on organic and seasonal produce. Steady foot traffic and loyalty programs have insulated it from e-commerce disruption. A classic defensive holding.',
+                  base:22.80, drift:0.00015, vol:0.010 },
+                { ticker:'MRRW', name:'Marrow Biomedical', sector:'Healthcare',
+                  desc:'Marrow is developing a bone marrow stimulant for chemotherapy patients. Phase 3 trial data is expected within six months. The stock is essentially a binary bet on trial success — or catastrophic failure.',
+                  base:12.40, drift:0.0001, vol:0.045 },
+                { ticker:'CLDN', name:'Cauldron Energy Partners', sector:'Energy',
+                  desc:'A mid-size natural gas producer in the Appalachian Basin. Results track Henry Hub spot prices closely, which have been volatile. Management recently hedged 60% of next year\'s production at $3.20/MMBtu.',
+                  base:18.70, drift:0.00005, vol:0.025 },
+                { ticker:'SHRWD', name:'Shrewdwood Analytics', sector:'Technology',
+                  desc:'Shrewdwood sells data analytics software to hedge funds and proprietary trading desks. Its flagship "Fog of War" dashboard is considered best-in-class. Customer retention is 94% and free cash flow is substantial.',
+                  base:87.30, drift:0.0003, vol:0.018 },
+                { ticker:'BNSH', name:'Banshee Media Group', sector:'Communication',
+                  desc:'Once a dominant print publisher, Banshee has struggled to monetize its digital transition. The podcast network shows promise, but print advertising declines are accelerating. Management has been replaced twice in three years.',
+                  base:8.60, drift:-0.0002, vol:0.020 },
+                { ticker:'CRPW', name:'Cryptwood Mining Co', sector:'Materials',
+                  desc:'Cryptwood extracts copper and rare earth minerals from Appalachian holdings. The energy-transition thesis has attracted speculative interest, but reserves are smaller than initially reported and leverage is elevated.',
+                  base:6.20, drift:0.00005, vol:0.038 },
+                { ticker:'WTHRD', name:'Withered Oak Financial', sector:'Financial Services',
+                  desc:'A specialty insurer focused on agricultural and weather-related coverage. Premium growth has been steady as climate volatility increases demand. The combined ratio has stayed below 92% for seven consecutive years.',
+                  base:41.10, drift:0.00012, vol:0.007 },
+                { ticker:'PMPKN', name:'Pumpkin Vine Logistics', sector:'Industrials',
+                  desc:'Pumpkin Vine operates a regional freight network across 12 states. An aging fleet and fuel costs have pressured margins, but a new contract with a major retailer adds $40M in annual revenue starting next year. The turnaround is unproven.',
+                  base:14.90, drift:0.00010, vol:0.022 },
+                { ticker:'NMRD', name:'Nimrod Pharmaceuticals', sector:'Healthcare',
+                  desc:'Nimrod has three approved drugs and a growing pipeline. Its lead product for treatment-resistant depression generates $180M in annual revenue and is growing 22% per year. A compounder, not a speculative bet.',
+                  base:63.80, drift:0.00020, vol:0.018 },
+                { ticker:'FFOG', name:'Fathomfog Shipping', sector:'Industrials',
+                  desc:'An international bulk shipping company with a fleet of 18 vessels. Rates have rebounded from post-pandemic lows and the order book is manageable. The CEO recently purchased $2M in stock on the open market.',
+                  base:29.50, drift:0.00008, vol:0.020 }
+            ];
+
+            var NEWS_UP   = ['{name} rises on positive outlook','Analysts raise target on {ticker}','{name} beats expectations','Institutional buying lifts {ticker}','{name} announces strategic expansion','{ticker} outperforms amid broad gains','{name} upgraded by major brokerage','Strong data lifts {ticker}'];
+            var NEWS_DOWN = ['{name} slips on cautious guidance','Analyst cuts {ticker} to Hold','{name} misses revenue estimates','Profit-taking pressures {ticker}','{name} faces competitive headwinds','Costs weigh on {ticker} margins','{ticker} lags as sector rotates','{name} guides below consensus'];
+            var NEWS_FLAT = ['{ticker} trades sideways in quiet session','Investors await catalyst for {name}','{ticker} consolidates near recent levels','Mixed signals keep {name} range-bound'];
+
+            var priceCache = {}, cachedDay = -1;
+            var portfolio = { cash: 10000, holdings: {} };
+            var viewState = 'list', selIdx = -1, qtySelected = 1;
+
+            function fmtUSD(v) {
+                var parts = Math.abs(v).toFixed(2).split('.');
+                parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+                return (v < 0 ? '-' : '') + '$' + parts.join('.');
+            }
+            function fmtPct(v) { return (v >= 0 ? '+' : '') + (v * 100).toFixed(2) + '%'; }
+
+            function dayNumber() {
+                var now = new Date(); now.setHours(0, 0, 0, 0);
+                return Math.max(0, Math.floor((now.getTime() - LAUNCH_MS) / 86400000));
+            }
+            function dayLabel() {
+                var d = new Date(), m = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                return m[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear();
+            }
+
+            function normalRand(rng) {
+                var u = 0, v = 0;
+                while (!u) u = rng(); while (!v) v = rng();
+                return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+            }
+
+            function buildCache() {
+                var dayN = dayNumber(); cachedDay = dayN;
+                STOCKS.forEach(function (s, i) {
+                    var arr = [s.base], p = s.base;
+                    for (var d = 1; d <= dayN; d++) {
+                        p = Math.max(0.01, p * (1 + s.drift + s.vol * normalRand(mulberry32(i * 100003 + d))));
+                        arr.push(p);
+                    }
+                    priceCache[i] = arr;
+                });
+            }
+
+            function curPrice(i) { var a = priceCache[i]; return a[a.length - 1]; }
+            function prevClose(i) { var a = priceCache[i]; return a.length >= 2 ? a[a.length - 2] : a[0]; }
+            function todayChg(i) { var c = curPrice(i), p = prevClose(i); return (c - p) / p; }
+
+            function getDailyNews(i) {
+                var dayN = dayNumber(); if (dayN === 0) return null;
+                var ret = todayChg(i);
+                var tpl = ret > 0.005 ? NEWS_UP : ret < -0.005 ? NEWS_DOWN : NEWS_FLAT;
+                var t = tpl[Math.floor(mulberry32(i * 200007 + dayN + 77777)() * tpl.length)];
+                return t.replace(/\{name\}/g, STOCKS[i].name).replace(/\{ticker\}/g, STOCKS[i].ticker);
+            }
+
+            function sparkSVG(prices, w, h) {
+                if (prices.length < 2) return '<svg viewBox="0 0 '+w+' '+h+'" xmlns="http://www.w3.org/2000/svg" style="width:'+w+'px;height:'+h+'px"><line x1="0" y1="'+(h/2)+'" x2="'+w+'" y2="'+(h/2)+'" stroke="rgba(138,154,154,.25)" stroke-width="1"/></svg>';
+                var mn = Math.min.apply(null, prices), mx = Math.max.apply(null, prices), rng = mx - mn || mn * 0.01 || 1;
+                var n = prices.length, col = prices[n-1] >= prices[0] ? '#66bb6a' : '#ef5350';
+                var pts = prices.map(function (p, i) { return (i/(n-1))*w+','+(h-((p-mn)/rng)*h*0.82-h*0.09); }).join(' ');
+                return '<svg viewBox="0 0 '+w+' '+h+'" xmlns="http://www.w3.org/2000/svg" style="width:'+w+'px;height:'+h+'px"><polyline points="'+pts+'" fill="none" stroke="'+col+'" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+            }
+
+            function chartSVG(prices, h) {
+                if (prices.length < 2) return '';
+                var mn = Math.min.apply(null, prices)*0.99, mx = Math.max.apply(null, prices)*1.01, rng = mx-mn||1;
+                var n = prices.length, W = 400;
+                var pts = prices.map(function (p, i) { return [(i/(n-1))*W, h-((p-mn)/rng)*h*0.82-h*0.09]; });
+                var path = 'M'+pts.map(function(p){return p[0].toFixed(1)+','+p[1].toFixed(1);}).join('L');
+                var area = path+'L'+W+','+h+'L0,'+h+'Z';
+                var col = prices[n-1] >= prices[0] ? '#66bb6a' : '#ef5350';
+                return '<svg viewBox="0 0 '+W+' '+h+'" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" style="width:100%;height:'+h+'px;display:block"><path d="'+area+'" fill="'+col+'" opacity="0.10"/><path d="'+path+'" fill="none" stroke="'+col+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+            }
+
+            function totalValue() {
+                var v = portfolio.cash;
+                Object.keys(portfolio.holdings).forEach(function (k) { var h = portfolio.holdings[k]; v += curPrice(parseInt(k, 10)) * h.shares; });
+                return v;
+            }
+
+            function savePort() { localStorage.setItem('fatott_mkt_port', JSON.stringify(portfolio)); }
+            function loadPort() { var s = localStorage.getItem('fatott_mkt_port'); if (s) try { portfolio = JSON.parse(s); } catch (e) {} }
+
+            function buy(idx, qty) {
+                var cost = curPrice(idx) * qty;
+                if (cost > portfolio.cash + 0.005 || qty < 1) return false;
+                portfolio.cash -= cost;
+                if (!portfolio.holdings[idx]) portfolio.holdings[idx] = { shares: 0, avgCost: 0 };
+                var h = portfolio.holdings[idx];
+                h.avgCost = (h.avgCost * h.shares + cost) / (h.shares + qty);
+                h.shares += qty; savePort(); return true;
+            }
+
+            function sell(idx, qty) {
+                var h = portfolio.holdings[idx];
+                if (!h || h.shares < qty - 0.001 || qty < 1) return false;
+                portfolio.cash += curPrice(idx) * qty;
+                h.shares -= qty;
+                if (h.shares < 0.001) delete portfolio.holdings[idx];
+                savePort(); return true;
+            }
+
+            function renderList() {
+                var html = '<div class="stock-list">';
+                STOCKS.forEach(function (s, i) {
+                    var p = curPrice(i), chg = todayChg(i);
+                    var chgCls = chg > 0.0001 ? 'chg-up' : chg < -0.0001 ? 'chg-dn' : 'chg-flat';
+                    var chgStr = (chg >= 0 ? '+' : '') + (chg * 100).toFixed(2) + '%';
+                    var hist = priceCache[i].slice(-30);
+                    html += '<div class="stock-card" data-idx="'+i+'">';
+                    html += '<div class="sc-left"><div class="sc-ticker">'+s.ticker+'</div><div class="sc-name">'+s.name+'</div></div>';
+                    html += '<div class="sc-mid">'+sparkSVG(hist, 72, 28)+'</div>';
+                    html += '<div class="sc-right"><div class="sc-price">'+fmtUSD(p)+'</div><div class="'+chgCls+'">'+chgStr+'</div></div>';
+                    html += '</div>';
+                });
+                html += '</div>';
+                var el = document.getElementById('mkt-list-view');
+                el.innerHTML = html;
+                el.querySelectorAll('.stock-card').forEach(function (card) {
+                    card.addEventListener('click', function () { showDetail(parseInt(card.dataset.idx, 10)); });
+                });
+            }
+
+            function renderDetail(idx) {
+                var s = STOCKS[idx], p = curPrice(idx), chg = todayChg(idx);
+                var chgCls = chg > 0.0001 ? 'chg-up' : chg < -0.0001 ? 'chg-dn' : 'chg-flat';
+                var news = getDailyNews(idx);
+                var h = portfolio.holdings[idx];
+                var hist = priceCache[idx].slice(-60);
+
+                var posHtml = '';
+                if (h && h.shares > 0.001) {
+                    var posVal = p * h.shares, posCost = h.avgCost * h.shares, posPnl = posVal - posCost, posPct = posCost > 0 ? posPnl / posCost : 0;
+                    posHtml = '<div class="det-position"><strong>'+h.shares+' shares</strong> @ avg '+fmtUSD(h.avgCost)+' &middot; Value: <strong>'+fmtUSD(posVal)+'</strong> &middot; P&amp;L: <span class="'+(posPnl>=0?'chg-up':'chg-dn')+'">'+(posPnl>=0?'+':'')+fmtUSD(posPnl)+' ('+fmtPct(posPct)+')</span></div>';
+                }
+
+                var html = '';
+                html += '<div class="det-head"><span class="det-ticker">'+s.ticker+'</span><span class="det-full-name">'+s.name+'</span></div>';
+                html += '<div class="det-sector">'+s.sector+'</div>';
+                html += '<div class="det-price-row"><span class="det-price">'+fmtUSD(p)+'</span><span class="'+chgCls+'">'+(chg>=0?'+':'')+(chg*100).toFixed(2)+'%</span></div>';
+                html += '<div id="det-chart">'+chartSVG(hist, 80)+'</div>';
+                if (news) html += '<div class="det-news">'+news+'</div>';
+                html += '<div class="det-desc">'+s.desc+'</div>';
+                if (posHtml) html += posHtml;
+                html += '<div class="trade-qty"><span class="trade-qty-label">Qty:</span>';
+                [1, 5, 10, 'Max'].forEach(function (q) {
+                    var isActive = (q === 'Max' ? qtySelected === 'Max' : q === qtySelected);
+                    html += '<button class="qty-chip'+(isActive?' active':'')+'" data-q="'+q+'">'+q+'</button>';
+                });
+                html += '</div>';
+                html += '<div class="trade-btns"><button class="btn-buy" id="det-buy">Buy</button><button class="btn-sell" id="det-sell">Sell</button></div>';
+                html += '<div class="trade-cash">Cash: '+fmtUSD(portfolio.cash)+'</div>';
+
+                var el = document.getElementById('mkt-detail-content');
+                el.innerHTML = html;
+
+                var chips = el.querySelectorAll('.qty-chip');
+                chips.forEach(function (chip) {
+                    chip.addEventListener('click', function () {
+                        qtySelected = chip.dataset.q === 'Max' ? 'Max' : parseInt(chip.dataset.q, 10);
+                        chips.forEach(function (c) { c.classList.toggle('active', c === chip); });
+                        updateTradeBtns(idx);
+                    });
+                });
+                updateTradeBtns(idx);
+
+                document.getElementById('det-buy').addEventListener('click', function () {
+                    var qty = resolveQty(idx, 'buy');
+                    if (buy(idx, qty)) renderDetail(idx);
+                });
+                document.getElementById('det-sell').addEventListener('click', function () {
+                    var qty = resolveQty(idx, 'sell');
+                    if (sell(idx, qty)) renderDetail(idx);
+                });
+            }
+
+            function resolveQty(idx, side) {
+                if (qtySelected === 'Max') {
+                    if (side === 'buy') return Math.max(1, Math.floor(portfolio.cash / curPrice(idx)));
+                    var h = portfolio.holdings[idx]; return h ? Math.floor(h.shares) : 0;
+                }
+                return qtySelected;
+            }
+
+            function updateTradeBtns(idx) {
+                var buyBtn = document.getElementById('det-buy'), sellBtn = document.getElementById('det-sell');
+                if (!buyBtn || !sellBtn) return;
+                var bq = resolveQty(idx, 'buy'), sq = resolveQty(idx, 'sell');
+                buyBtn.disabled = curPrice(idx) * bq > portfolio.cash + 0.005 || bq < 1;
+                buyBtn.textContent = 'Buy ' + bq;
+                var h = portfolio.holdings[idx];
+                sellBtn.disabled = !h || h.shares < sq - 0.001 || sq < 1;
+                sellBtn.textContent = 'Sell ' + sq;
+            }
+
+            function renderPortfolio() {
+                var total = totalValue(), pnl = total - 10000, pnlCls = pnl >= 0 ? 'chg-up' : 'chg-dn';
+                var html = '<div class="port-summary">';
+                html += '<div class="port-total-label">Portfolio Value</div>';
+                html += '<div class="port-total">'+fmtUSD(total)+'</div>';
+                html += '<div class="port-pnl"><span class="'+pnlCls+'">'+(pnl>=0?'+':'')+fmtUSD(pnl)+' ('+(pnl>=0?'+':'')+(pnl/100).toFixed(2)+'%)</span> since start</div>';
+                html += '<div class="port-cash-line">Cash available: '+fmtUSD(portfolio.cash)+'</div>';
+                html += '</div>';
+
+                var keys = Object.keys(portfolio.holdings).filter(function (k) { return portfolio.holdings[k] && portfolio.holdings[k].shares > 0.001; });
+                if (keys.length === 0) {
+                    html += '<div class="port-empty">No positions yet. Go to Market to buy stocks.</div>';
+                } else {
+                    html += '<div class="port-holdings">';
+                    keys.forEach(function (k) {
+                        var i = parseInt(k, 10), s = STOCKS[i], h = portfolio.holdings[k];
+                        var p = curPrice(i), val = p * h.shares, cost = h.avgCost * h.shares, posP = val - cost, ppct = cost > 0 ? posP / cost : 0;
+                        html += '<div class="port-holding" data-idx="'+i+'">';
+                        html += '<div><div class="hold-ticker">'+s.ticker+'</div><div class="hold-shares">'+h.shares+' sh @ '+fmtUSD(h.avgCost)+'</div></div>';
+                        html += '<div><div class="hold-value">'+fmtUSD(val)+'</div><div class="hold-pnl '+(posP>=0?'chg-up':'chg-dn')+'">'+(posP>=0?'+':'')+fmtUSD(posP)+' ('+fmtPct(ppct)+')</div></div>';
+                        html += '</div>';
+                    });
+                    html += '</div>';
+                }
+                var el = document.getElementById('mkt-port-content');
+                el.innerHTML = html;
+                el.querySelectorAll('.port-holding').forEach(function (card) {
+                    card.addEventListener('click', function () { showDetail(parseInt(card.dataset.idx, 10)); });
+                });
+            }
+
+            function showList() {
+                viewState = 'list';
+                document.getElementById('mkt-list-view').style.display = '';
+                document.getElementById('mkt-detail-view').style.display = 'none';
+                document.getElementById('mkt-port-view').style.display = 'none';
+                document.getElementById('mkt-list-btn').classList.add('active');
+                document.getElementById('mkt-port-btn').classList.remove('active');
+                renderList();
+            }
+
+            function showDetail(idx) {
+                viewState = 'detail'; selIdx = idx; qtySelected = 1;
+                document.getElementById('mkt-list-view').style.display = 'none';
+                document.getElementById('mkt-detail-view').style.display = '';
+                document.getElementById('mkt-port-view').style.display = 'none';
+                renderDetail(idx);
+            }
+
+            function showPortfolio() {
+                viewState = 'portfolio';
+                document.getElementById('mkt-list-view').style.display = 'none';
+                document.getElementById('mkt-detail-view').style.display = 'none';
+                document.getElementById('mkt-port-view').style.display = '';
+                document.getElementById('mkt-list-btn').classList.remove('active');
+                document.getElementById('mkt-port-btn').classList.add('active');
+                renderPortfolio();
+            }
+
+            document.getElementById('mkt-list-btn').addEventListener('click', showList);
+            document.getElementById('mkt-port-btn').addEventListener('click', showPortfolio);
+            document.getElementById('mkt-back-btn').addEventListener('click', showList);
+
+            var initialized = false;
+            function init() {
+                loadPort();
+                if (dayNumber() !== cachedDay) buildCache();
+                document.getElementById('mkt-day-label').textContent = 'Market as of ' + dayLabel() + (dayNumber() > 0 ? ' \xB7 Day ' + dayNumber() : ' \xB7 Opening day');
+                initialized = true;
+                if (viewState === 'portfolio') showPortfolio();
+                else if (viewState === 'detail' && selIdx >= 0) showDetail(selIdx);
+                else showList();
+            }
+
+            return { init: init, pause: function () {}, resume: init, get puzzle() { return initialized; } };
+        })();
+
         /* =========================================================
            Battleships (Bimaru)
         ========================================================= */
