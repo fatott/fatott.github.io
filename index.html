@@ -67,8 +67,7 @@
 
         /* Pumpkin + candle glow ---------------------------------------- */
         .pumpkin-wrap { position: relative; display: none; line-height: 0; }
-        body[data-view="home"] .pumpkin-wrap,
-        body[data-view="arcade"] .pumpkin-wrap { display: inline-block; }
+        body[data-view="home"] .pumpkin-wrap { display: inline-block; }
 
         img { max-width: 90vw; max-height: 62vh; object-fit: contain; }
 
@@ -113,103 +112,6 @@
         }
         body[data-view="home"] a.email { display: block; }
 
-        /* Arcade: HUD + creatures + panels ----------------------------- */
-        .hud {
-            position: fixed;
-            top: 0; left: 0; right: 0;
-            display: none;
-            justify-content: space-between;
-            align-items: center;
-            padding: 1rem 1.4rem;
-            font-family: 'MedievalSharp', cursive;
-            color: var(--ash);
-            font-size: 1.1rem;
-            letter-spacing: 0.08em;
-            z-index: 8;
-            pointer-events: none;
-            text-shadow: 0 0 8px rgba(0,0,0,.9);
-        }
-        body[data-view="arcade"].playing .hud { display: flex; }
-        .hud .val { color: var(--ember); }
-
-        #game { position: fixed; inset: 0; pointer-events: none; z-index: 5; }
-        .creature { position: absolute; top: 0; pointer-events: auto; cursor: pointer; will-change: transform; }
-        .creature.spider { width: 52px; }
-        .creature.bat    { width: 66px; }
-        .creature .cre-svg { width: 100%; height: auto; display: block; }
-        .creature:hover .cre-svg { filter: drop-shadow(0 0 7px var(--ember)); }
-        .cre-svg .bd, .cre-svg .ear, .cre-svg .wing path { fill: var(--ash); }
-        .cre-svg .legs { stroke: var(--ash); stroke-width: 2.4; }
-        .cre-svg .eye { fill: var(--ember); }
-        .creature.spider::before {
-            content: '';
-            position: absolute;
-            left: 50%; bottom: 100%;
-            width: 2px; height: 100vh;
-            transform: translateX(-50%);
-            background: linear-gradient(to top, rgba(150,165,165,.55), rgba(150,165,165,0));
-        }
-        .wing { transform-box: fill-box; }
-        .wl { transform-origin: right center; animation: flapL .2s infinite alternate ease-in-out; }
-        .wr { transform-origin: left center;  animation: flapR .2s infinite alternate ease-in-out; }
-        @keyframes flapL { from { transform: rotate(8deg); }  to { transform: rotate(-20deg); } }
-        @keyframes flapR { from { transform: rotate(-8deg); } to { transform: rotate(20deg); } }
-        @keyframes drop { 0% { transform: translateY(-12vh); } 100% { transform: translateY(112vh); } }
-        @keyframes flyR {
-            0% { transform: translate(-14vw, 0); } 25% { transform: translate(18vw, -26px); }
-            50% { transform: translate(50vw, 14px); } 75% { transform: translate(82vw, -20px); }
-            100% { transform: translate(116vw, 0); }
-        }
-        @keyframes flyL {
-            0% { transform: translate(116vw, 0); } 25% { transform: translate(82vw, -26px); }
-            50% { transform: translate(50vw, 14px); } 75% { transform: translate(18vw, -20px); }
-            100% { transform: translate(-14vw, 0); }
-        }
-
-        .pop {
-            position: fixed;
-            transform: translate(-50%, -50%);
-            font-family: 'MedievalSharp', cursive;
-            color: var(--ember);
-            font-size: 1.3rem;
-            pointer-events: none;
-            z-index: 9;
-            text-shadow: 0 0 10px rgba(255,120,30,.9);
-            animation: popRise .55s ease-out forwards;
-        }
-        @keyframes popRise {
-            0% { opacity: 1; transform: translate(-50%, -50%) scale(.7); }
-            100% { opacity: 0; transform: translate(-50%, -160%) scale(1.1); }
-        }
-
-        .panel {
-            position: fixed;
-            left: 50%; bottom: 8%;
-            transform: translateX(-50%);
-            z-index: 20;
-            text-align: center;
-            font-family: 'MedievalSharp', cursive;
-            color: var(--ash);
-            background: rgba(8, 14, 14, .82);
-            border: 1px solid rgba(138,154,154,.28);
-            border-radius: 10px;
-            padding: 1.1rem 1.6rem;
-            backdrop-filter: blur(2px);
-            box-shadow: 0 10px 40px rgba(0,0,0,.7);
-            max-width: 90vw;
-            display: none;
-        }
-        body[data-view="arcade"] #start-panel.on,
-        body[data-view="arcade"] #over-panel.on { display: block; }
-        .panel .title {
-            font-size: 1.5rem;
-            color: var(--ember);
-            letter-spacing: 0.1em;
-            margin-bottom: .35rem;
-            text-shadow: 0 0 14px rgba(255,120,30,.5);
-        }
-        .panel .sub { font-size: .9rem; opacity: .8; margin-bottom: .9rem; }
-        .panel .sub .val { color: var(--ember); }
 
         .btn {
             font-family: 'MedievalSharp', cursive;
@@ -226,19 +128,6 @@
         }
         .btn:hover { transform: translateY(-1px) scale(1.03); box-shadow: 0 0 26px rgba(255,120,30,.7); }
 
-        .sound-toggle {
-            position: fixed;
-            bottom: 12px; right: 14px;
-            z-index: 20;
-            display: none;
-            font-family: 'MedievalSharp', cursive;
-            font-size: .8rem;
-            color: var(--ash);
-            opacity: .5;
-            background: none; border: none; cursor: pointer;
-        }
-        body[data-view="arcade"] .sound-toggle { display: block; }
-        .sound-toggle:hover { opacity: .9; }
 
         /* Futoshiki ---------------------------------------------------- */
         #futoshiki-view { display: none; flex-direction: column; align-items: center; gap: 1rem; }
@@ -489,7 +378,6 @@
 
     <nav class="tabs">
         <button class="tab active" data-view="home">Home</button>
-        <button class="tab" data-view="arcade">Feed Fat Ott</button>
         <button class="tab" data-view="futoshiki">Futoshiki</button>
         <button class="tab" data-view="bridges">Bridges</button>
         <button class="tab" data-view="nonogram">Nonogram</button>
@@ -504,23 +392,6 @@
 
     <a class="email" href="mailto:fatott@fatott.com">fatott@fatott.com</a>
 
-    <!-- Feed Fat Ott (arcade) -->
-    <div class="hud">
-        <span>caught <span class="val" id="score">0</span></span>
-        <span><span class="val" id="time">15</span>s</span>
-    </div>
-    <div id="game"></div>
-    <div class="panel" id="start-panel">
-        <div class="title">Feed Fat Ott</div>
-        <div class="sub">Bats and spiders crawl from the dark.<br>Click them before they escape. 15 seconds.</div>
-        <button class="btn" id="start-btn">Begin the feast</button>
-    </div>
-    <div class="panel" id="over-panel">
-        <div class="title">Time's up</div>
-        <div class="sub">Fat Ott devoured <span class="val" id="final">0</span> &middot; best <span class="val" id="best">0</span></div>
-        <button class="btn" id="again-btn">Play again</button>
-    </div>
-    <button class="sound-toggle" id="sound-toggle" aria-label="Toggle sound">&#9834; sound on</button>
 
     <!-- Futoshiki -->
     <section id="futoshiki-view">
@@ -662,7 +533,6 @@
 
         function showView(name) {
             var prev = document.body.dataset.view;
-            if (prev === 'arcade' && name !== 'arcade') stopArcade();
             if (prev === 'futoshiki' && name !== 'futoshiki') FK.pause();
             if (prev === 'bridges' && name !== 'bridges') BR.pause();
             if (prev === 'nonogram' && name !== 'nonogram') NO.pause();
@@ -670,7 +540,6 @@
             if (prev === 'market' && name !== 'market') MKT.pause();
             document.body.dataset.view = name;
             tabs.forEach(function (t) { t.classList.toggle('active', t.dataset.view === name); });
-            if (name === 'arcade') resetArcadePanels();
             if (name === 'futoshiki') { if (!FK.puzzle) FK.newPuzzle(); else FK.resume(); }
             if (name === 'bridges') { if (!BR.puzzle) BR.newPuzzle(); else BR.resume(); }
             if (name === 'nonogram') { if (!NO.puzzle) NO.newPuzzle(); else NO.resume(); }
@@ -679,163 +548,7 @@
         }
         tabs.forEach(function (t) { t.addEventListener('click', function () { showView(t.dataset.view); }); });
 
-        /* =========================================================
-           Sound (short reactive blips only, after a user gesture)
-        ========================================================= */
-        var soundOn = true, audioCtx = null;
-        function ensureAudio() {
-            if (!audioCtx) {
-                var AC = window.AudioContext || window.webkitAudioContext;
-                if (AC) audioCtx = new AC();
-            }
-        }
-        function blip(freq, dur, type) {
-            if (!soundOn || !audioCtx) return;
-            var t = audioCtx.currentTime;
-            var osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
-            osc.type = type || 'triangle';
-            osc.frequency.setValueAtTime(freq, t);
-            osc.frequency.exponentialRampToValueAtTime(freq * 0.5, t + dur);
-            gain.gain.setValueAtTime(0.12, t);
-            gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-            osc.connect(gain).connect(audioCtx.destination);
-            osc.start(t); osc.stop(t + dur);
-        }
-        var soundBtn = document.getElementById('sound-toggle');
-        soundBtn.addEventListener('click', function () {
-            soundOn = !soundOn;
-            soundBtn.innerHTML = soundOn ? '&#9834; sound on' : '&#9834; sound off';
-        });
-
         var glow = document.getElementById('glow');
-        function flareGlow() {
-            glow.style.transform = 'scale(1.05)';
-            clearTimeout(flareGlow._t);
-            flareGlow._t = setTimeout(function () { glow.style.transform = ''; }, 160);
-        }
-        function popAt(x, y, text) {
-            var p = document.createElement('div');
-            p.className = 'pop';
-            p.textContent = text || '+1';
-            p.style.left = x + 'px';
-            p.style.top = y + 'px';
-            p.addEventListener('animationend', function () { p.remove(); });
-            document.body.appendChild(p);
-        }
-
-        /* =========================================================
-           Feed Fat Ott (arcade)
-        ========================================================= */
-        var ROUND_SECONDS = 15;
-        var BEST_KEY = 'fatott_best';
-        var game = document.getElementById('game');
-        var scoreEl = document.getElementById('score');
-        var timeEl = document.getElementById('time');
-        var finalEl = document.getElementById('final');
-        var bestEl = document.getElementById('best');
-        var startPanel = document.getElementById('start-panel');
-        var overPanel = document.getElementById('over-panel');
-
-        var playing = false, score = 0, timeLeft = ROUND_SECONDS;
-        var spawnTimer = null, countTimer = null;
-
-        var BAT_SVG =
-            '<svg class="cre-svg" viewBox="-52 -30 104 60" xmlns="http://www.w3.org/2000/svg">' +
-            '<g class="wing wl"><path d="M-4 0 C -18 -18 -38 -20 -50 -8 C -40 -6 -38 3 -44 11 C -28 3 -16 9 -4 5 Z"/></g>' +
-            '<g class="wing wr"><path d="M4 0 C 18 -18 38 -20 50 -8 C 40 -6 38 3 44 11 C 28 3 16 9 4 5 Z"/></g>' +
-            '<path class="bd" d="M-4 -3 C -4 -11 4 -11 4 -3 L 4 7 C 4 13 -4 13 -4 7 Z"/>' +
-            '<path class="ear" d="M-5 -9 L -3 -17 L 0 -9 Z"/><path class="ear" d="M5 -9 L 3 -17 L 0 -9 Z"/>' +
-            '<circle class="eye" cx="-2.3" cy="-4" r="1.3"/><circle class="eye" cx="2.3" cy="-4" r="1.3"/></svg>';
-        var SPIDER_SVG =
-            '<svg class="cre-svg" viewBox="-34 -16 68 64" xmlns="http://www.w3.org/2000/svg">' +
-            '<g class="legs" fill="none" stroke-linecap="round">' +
-            '<path d="M-6 8 C -18 2 -26 8 -31 2"/><path d="M-6 12 C -20 12 -28 18 -33 14"/>' +
-            '<path d="M-6 16 C -18 22 -26 24 -30 31"/><path d="M-5 20 C -14 28 -17 32 -21 39"/>' +
-            '<path d="M6 8 C 18 2 26 8 31 2"/><path d="M6 12 C 20 12 28 18 33 14"/>' +
-            '<path d="M6 16 C 18 22 26 24 30 31"/><path d="M5 20 C 14 28 17 32 21 39"/></g>' +
-            '<ellipse class="bd" cx="0" cy="18" rx="9" ry="11"/><circle class="bd" cx="0" cy="5" r="6"/>' +
-            '<circle class="eye" cx="-2.2" cy="4" r="1.3"/><circle class="eye" cx="2.2" cy="4" r="1.3"/></svg>';
-
-        function spawnCreature() {
-            var isSpider = Math.random() < 0.58;
-            var el = document.createElement('div');
-            el.className = 'creature ' + (isSpider ? 'spider' : 'bat');
-            el.innerHTML = isSpider ? SPIDER_SVG : BAT_SVG;
-            if (isSpider) {
-                el.style.left = (6 + Math.random() * 84) + 'vw';
-                el.style.animation = 'drop ' + (3.4 + Math.random() * 1.8).toFixed(2) + 's linear forwards';
-            } else {
-                el.style.left = '0';
-                el.style.top = (8 + Math.random() * 68) + 'vh';
-                var dir = Math.random() < 0.5 ? 'flyR' : 'flyL';
-                el.style.animation = dir + ' ' + (4.2 + Math.random() * 2).toFixed(2) + 's linear forwards';
-            }
-            el.addEventListener('pointerdown', onCatch);
-            el.addEventListener('animationend', function () { el.remove(); });
-            game.appendChild(el);
-        }
-        function onCatch(e) {
-            if (!playing) return;
-            var el = e.currentTarget;
-            if (el.dataset.done) return;
-            el.dataset.done = '1';
-            e.preventDefault(); e.stopPropagation();
-            var r = el.getBoundingClientRect();
-            el.remove();
-            score += 1; scoreEl.textContent = score;
-            popAt(r.left + r.width / 2, r.top + r.height / 2, '+1');
-            flareGlow(); blip(660, 0.12, 'triangle');
-        }
-        function scheduleSpawn() {
-            spawnCreature();
-            var elapsed = ROUND_SECONDS - timeLeft;
-            var interval = Math.max(320, 760 - elapsed * 26);
-            spawnTimer = setTimeout(scheduleSpawn, interval);
-        }
-        function tick() {
-            timeLeft -= 1; timeEl.textContent = timeLeft;
-            if (timeLeft <= 0) endGame();
-        }
-        function clearCreatures() {
-            var n = game.querySelectorAll('.creature');
-            for (var i = 0; i < n.length; i++) n[i].remove();
-        }
-        function startGame() {
-            ensureAudio();
-            if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
-            playing = true; score = 0; timeLeft = ROUND_SECONDS;
-            scoreEl.textContent = '0'; timeEl.textContent = ROUND_SECONDS;
-            startPanel.classList.remove('on'); overPanel.classList.remove('on');
-            document.body.classList.add('playing');
-            clearCreatures(); scheduleSpawn();
-            countTimer = setInterval(tick, 1000);
-        }
-        function endGame() {
-            playing = false;
-            clearTimeout(spawnTimer); clearInterval(countTimer);
-            clearCreatures(); document.body.classList.remove('playing');
-            var best = parseInt(localStorage.getItem(BEST_KEY) || '0', 10);
-            if (score > best) { best = score; localStorage.setItem(BEST_KEY, String(best)); }
-            finalEl.textContent = score; bestEl.textContent = best;
-            overPanel.classList.add('on'); blip(180, 0.4, 'sawtooth');
-        }
-        function stopArcade() {
-            playing = false;
-            clearTimeout(spawnTimer); clearInterval(countTimer);
-            clearCreatures(); document.body.classList.remove('playing');
-            startPanel.classList.remove('on'); overPanel.classList.remove('on');
-        }
-        function resetArcadePanels() {
-            if (playing) return;
-            overPanel.classList.remove('on');
-            startPanel.classList.add('on');
-            var best = parseInt(localStorage.getItem(BEST_KEY) || '0', 10);
-            var sub = startPanel.querySelector('.sub');
-            sub.innerHTML = 'Bats and spiders crawl from the dark.<br>Click them before they escape. 15 seconds.' +
-                (best > 0 ? '<br>best so far: <span class="val">' + best + '</span>' : '');
-        }
-        document.getElementById('start-btn').addEventListener('click', startGame);
-        document.getElementById('again-btn').addEventListener('click', startGame);
 
         /* =========================================================
            Futoshiki (5x5)
